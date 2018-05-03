@@ -5,30 +5,42 @@ const services = require('../services');
 
 function signUp (req, res) {
   const user = new User({
-    email: req.body.email ,
-    displayName: req.body.displayName ,
-    password: req.body.password
+    email: req.body.email,
+    displayName: req.body.displayName,
+    password: req.body.password,
+    type:req.body.type
   })
 
-  user.save((err) =>{
-    if(err) res.status(500).send({ menssage: `Error al crar el usuario: ${err}`})
+  user.avatar = user.gravatar();
 
-    return res.status(201).send({ token: services.createToken(user) })
-  } )
+  user.save(err => {
+    if (err) return res.status(500).send({ msg: `Error al crear usuario: ${err}` })
+    return res.status(200).send({ token: services.createToken(user) })
+  })
 }
+
 
 function signIn (req, res) {
-  User.find({ email: req.body.email }, (err, user) =>{
-    if(err) res.status(500).send({ menssage: `${err}`})
-    if(!user) res.status(404).send({ menssage: `No existe el usuario ${err}`})
 
-    req.user = user
-    res.status(200).send({
-      menssage: `Te has logueado correctamente`,
-      token: services.createToken(user)
-    })
-  })
-}
+  var mailIncoming = req.body.email
+  var passIncoming = req.body.password
+
+    User.findOne({ email: mailIncoming }).select('_id email +password').exec(function (err, user) {
+
+      if (err) return res.status(500).send({ msg: `Error al ingresar: ${err}` })
+      if (!user) return res.status(404).send({ msg: `no existe el usuario: ${mailIncoming}` })
+
+      return user.comparePassword(req.body.password, (err, isMatch) => {
+        if (err) return res.status(500).send({ msg: `Error al ingresar: ${err}` })
+        if (!isMatch) return res.status(404).send({ msg: `Error de contraseña: ${req.body.email}` })
+
+        req.user = user
+        return res.status(200).send({ msg: 'Te has logueado correctamente', token: services.createToken(user) })
+      });
+
+    });
+ }
+
 
 //probando una zona privada
 function privado (req, res) {

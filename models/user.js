@@ -8,10 +8,11 @@ const crypto = require('crypto');
 const UserSchema = Schema({
   //Intento de guardar un segundo id con la intencion de tener un id publico y uno privado
   //_publicId: Schema.Types.ObjectId,
+  type: {type: String, enum: ['admin', 'pro', 'basic']},
   email: { type: String, unique: true, lowercase: true },
+  password: { type: String, select: false },
   displayName: String,
   avatar: String,
-  password: { type: String, select: false },
   signUpDate: { type: Date, default: Date.now() },
   lastLogin: Date
 })
@@ -33,11 +34,20 @@ UserSchema.pre('save',  function(next) {
   })
 })
 
-UserSchema.methods.gravatar = function (){
-  if(!this.email) return `https//gravatar.com/avatar/?s=200&d=retro`
-
-  const md5 = crypto.crateHash('md5').update(this.email).digest('hex')
-  return `https//gravatar.com/avatar/${md5}?s=200&d=retro`
+UserSchema.methods.gravatar = function (size) {
+  if (!size) {
+    size = 200;
+  }
+  if (!this.email) return `https:/gravatar.com/avatar/?s${size}&d=retro`
+  const md5 = crypto.createHash('md5').update(this.email).digest('hex')
+  return `https://gravatar.com/avatar/${md5}?s=${size}&d=retro`
 }
+
+UserSchema.methods.comparePassword = function (candidatePassword, cb) {
+  bcrypt.compare(candidatePassword, this.password, (err, isMatch) => {
+    cb(err, isMatch)
+  });
+}
+
 
 module.exports = mongoose.model('User', UserSchema)

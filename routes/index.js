@@ -29,10 +29,10 @@ api.post('/signup', userCtrl.signUp)
 api.post('/signin', userCtrl.signIn)
 
 // Ruta privada para probar permisos de usuarios
-api.get('/private', auth , userCtrl.privado)
+api.get('/private', auth.isAuth , auth.isPro , userCtrl.privado)
 
 // Peticiones al servidor de usuarios
-api.get('/users', userCtrl.getUsers)
+api.get('/users', auth.isAuth, userCtrl.getUsers)
 
 
 module.exports = api
