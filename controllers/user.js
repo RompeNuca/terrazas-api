@@ -1,10 +1,12 @@
 'use strict'
 
+const mongoose = require('mongoose');
 const User = require('../models/user');
 const services = require('../services');
 
 function signUp (req, res) {
   const user = new User({
+    _publicId: new mongoose.Types.ObjectId(),
     email: req.body.email,
     displayName: req.body.displayName,
     password: req.body.password,
@@ -25,7 +27,7 @@ function signIn (req, res) {
   var mailIncoming = req.body.email
   var passIncoming = req.body.password
 
-    User.findOne({ email: mailIncoming }).select('_id email +password').exec(function (err, user) {
+    User.findOne({ email: mailIncoming }).select('_publicId email +password').exec(function (err, user) {
 
       if (err) return res.status(500).send({ msg: `Error al ingresar: ${err}` })
       if (!user) return res.status(404).send({ msg: `no existe el usuario: ${mailIncoming}` })

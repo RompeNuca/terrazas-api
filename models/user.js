@@ -6,15 +6,16 @@ const bcrypt = require('bcrypt-nodejs');
 const crypto = require('crypto');
 
 const UserSchema = Schema({
-  //Intento de guardar un segundo id con la intencion de tener un id publico y uno privado
-  //_publicId: Schema.Types.ObjectId,
+  _id: {type: mongoose.Schema.ObjectId, select: false},
+  _publicId: String,
   type: {type: String, enum: ['admin', 'pro', 'basic']},
   email: { type: String, unique: true, lowercase: true },
   password: { type: String, select: false },
   displayName: String,
   avatar: String,
   signUpDate: { type: Date, default: Date.now() },
-  lastLogin: Date
+  lastLogin: Date,
+  __v: {type: Number, select: false},
 })
 
 // El porque no se usa una arrow function aca: https://github.com/Automattic/mongoose/issues/4537
