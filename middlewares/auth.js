@@ -25,8 +25,8 @@ function isPro (req, res, next) {
   let token = req.headers.authorization.split(' ')[1]
   services.decodeToken(token)
     .then(response => {
-      console.log(response);
-      User.findOne({ _id: response }, function(err, user) {
+
+      User.findOne({ public_id: response }, function(err, user) {
         let typeAc = user.type
 
         if (typeAc == 'pro') { return next() }

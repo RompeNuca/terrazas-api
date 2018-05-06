@@ -1,7 +1,9 @@
 'use strict'
 
+const config = require('../config');
+const mongoose = require('mongoose');
 const Product = require('../models/product');
-
+const fs = require('fs');
 
  function getProducts (req, res) {
 
@@ -9,11 +11,34 @@ const Product = require('../models/product');
     if (err) return res.status(500).send({message: `Error al relaizar la peticion, ${err}`})
     if (!products) return res.status(404).send({message: `No hay productos`})
 
-    res.status(200).send({ products })
-  })
+  }).select("name price _id productImage")
+    .exec()
+    .then(docs => {
+      const response = {
+        count: docs.length,
+        products: docs.map(doc => {
+          return {
+            name: doc.name,
+            price: doc.price,
+            productImage: doc.productImage,
+            _id: doc._id,
+            request: {
+              type: "GET",
+              url: `${config.domain}${config.port}${doc._id}`
+            }
+          };
+        })
+      };
+      res.status(200).json(response);
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({
+        error: err
+      });
+    });
 
 }
-
 
 function getProduct (req, res) {
 
@@ -35,7 +60,7 @@ function saveProduct (req, res) {
 
   let product = new Product()
   product.name = req.body.name
-  product.picture = req.body.picture
+  product.productImage = req.file.path
   product.price = req.body.price
   product.category = req.body.category
   product.description = req.body.description
@@ -47,12 +72,35 @@ function saveProduct (req, res) {
 
 }
 
+
 function updateProduct (req, res) {
 
-  let productId = req.params.productId
-  let update = req.body
+  let updateId = req.params.productId
 
-  Product.findByIdAndUpdate(productId, update, (err, productUpdate) => {
+  Product.findOne({ _id: updateId }).select('_Id name productImage').exec(function (err, item) {
+
+    let imageLast = item.productImage
+    let imageNew = req.file.path
+
+    if (imageLast !== imageNew) {
+      fs.unlink(imageLast, (err) => {
+        if (err) throw err;
+        console.log('la imagen fue modificada');
+      });
+    }else {
+      console.log('la imagen es la misma');
+    }
+  });
+
+  let update = new Product()
+  update._id = updateId
+  update.name = req.body.name
+  update.productImage = req.file.path
+  update.price = req.body.price
+  update.category = req.body.category
+  update.description = req.body.description
+
+  Product.findByIdAndUpdate(updateId, update, (err, productUpdate) => {
 
     if (err) return res.status(500).send({message: `Error al actualizar el producto, ${err}`})
     if (!productUpdate) return res.status(404).send({message: `El producto no existe`})
@@ -67,9 +115,15 @@ function deleteProduct (req, res) {
 
   let productId = req.params.productId
 
+
   Product.findById(productId, (err, product) => {
     if (err) res.status(500).send({message: `Error al rborrar el producto, ${err}`})
     if (!product) return res.status(404).send({message: `El producto no existe`})
+
+    fs.unlink(product.productImage, (err) => {
+      if (err) throw err;
+      console.log('la imagen fue eliminada');
+    });
 
     product.remove(err => {
       if (err) res.status(500).send({message: `Error al rborrar el producto, ${err}`})
@@ -84,5 +138,5 @@ module.exports = {
   getProduct,
   saveProduct,
   updateProduct,
-  deleteProduct,
+  deleteProduct
 }

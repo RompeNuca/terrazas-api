@@ -7,8 +7,7 @@ const config = require('../config');
 function createToken(user) {
   const payload = {
     // Intento de hacer un id publico
-    // sub: user.public_Id,
-    sub: user._id,
+     sub: user.public_Id,
     iat: moment().unix(),
     exp: moment().add(30, 'days').unix()
   }

@@ -9,6 +9,9 @@ const api = require('./routes');
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 
+app.use(express.static('public'));
+app.use(express.static('upload'));
+
 
 // Add headers
 app.use(function(req, res, next) {

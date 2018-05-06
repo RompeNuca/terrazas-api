@@ -11,6 +11,6 @@ mongoose.connect(config.db, (err, res)=>{
   console.log('conexion a la base de datos establecida...');
 
   app.listen(config.port, () => {
-    console.log((`el servidor esta andando en http://localhost:${config.port}`));
+    console.log((`el servidor esta andando en ${config.domain}${config.port}`));
   })
 })
