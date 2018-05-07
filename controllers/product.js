@@ -75,39 +75,40 @@ function saveProduct (req, res) {
 
 function updateProduct (req, res) {
 
-  let updateId = req.params.productId
+  let product = req.body;
+  let updateId = req.params.productId;
+  let imageNew
+  var imageLast
 
-  Product.findOne({ _id: updateId }).select('_Id name productImage').exec(function (err, item) {
 
-    let imageLast = item.productImage
-    let imageNew = req.file.path
+  if (req.file) {
 
-    if (imageLast !== imageNew) {
-      fs.unlink(imageLast, (err) => {
-        if (err) throw err;
-        console.log('la imagen fue modificada');
-      });
-    }else {
-      console.log('la imagen es la misma');
-    }
-  });
+      imageNew = req.file.path;
+      product.productImage = imageNew;
 
-  let update = new Product()
-  update._id = updateId
-  update.name = req.body.name
-  update.productImage = req.file.path
-  update.price = req.body.price
-  update.category = req.body.category
-  update.description = req.body.description
+    Product.findOne({ _id: updateId }).select('_Id name productImage').exec(function (err, item) {
 
-  Product.findByIdAndUpdate(updateId, update, (err, productUpdate) => {
+      imageLast = item.productImage
+
+      if (imageLast !== imageNew) {
+        fs.unlink(imageLast, (err) => {
+          if (err) throw err;
+          console.log('la imagen fue modificada');
+        });
+      }else {
+        console.log('la imagen es la misma');
+      }
+    });
+
+  }
+
+  Product.findByIdAndUpdate( updateId, product, (err, productUpdate) => {
 
     if (err) return res.status(500).send({message: `Error al actualizar el producto, ${err}`})
     if (!productUpdate) return res.status(404).send({message: `El producto no existe`})
 
     res.status(200).send({ product: productUpdate })
   })
-
 }
 
 
