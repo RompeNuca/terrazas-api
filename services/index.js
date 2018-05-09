@@ -6,7 +6,6 @@ const config = require('../config');
 
 function createToken(user) {
   const payload = {
-    // Intento de hacer un id publico
      sub: user.public_Id,
     iat: moment().unix(),
     exp: moment().add(30, 'days').unix()
@@ -21,7 +20,7 @@ function decodeToken(token) {
 
       const payload = jwt.decode(token, config.SECRET_TOKEN)
 
-      if (payload.exp <= moment().unix()) {
+      if (payload.exp <= payload.iat) {
         reject({
           status: 401,
           menssage: `Token expirado`
@@ -41,8 +40,37 @@ function decodeToken(token) {
   return decoded
 }
 
+function verificarVigencia(array) {
+
+  function revisar(el) {
+
+    let payload = {
+      iat: moment().unix(),
+      exp: moment().add(el.vigencia.tiempo, 'YYYY-MM-DD HH:mm').unix()
+    }
+
+    if (el.vigencia.desde) {
+      payload.iat = moment(el.vigencia.desde, 'YYYY-MM-DD HH:mm').unix()
+      payload.exp = moment(el.vigencia.hasta, 'YYYY-MM-DD HH:mm').unix()
+    }
+
+    return (moment().unix() >= payload.iat && moment().unix() <= payload.exp);
+  }
+
+  let elVigentes = []
+
+  for (var i = 0; i < array.length; i++) {
+    if (revisar(array[i])) {
+      elVigentes.push(array[i])
+    }
+  }
+  return elVigentes;
+}
+
+
 
 module.exports = {
   createToken,
-  decodeToken
+  decodeToken,
+  verificarVigencia
 }

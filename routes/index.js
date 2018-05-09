@@ -4,7 +4,9 @@
 const express = require('express');
 const productCtrl = require('../controllers/product');
 const userCtrl = require('../controllers/user');
+const eventosCtrl = require('../controllers/eventos');
 const auth = require('../middlewares/auth');
+const vigencia = require('../middlewares/vigencia');
 const multer = require('multer');
 
 const api = express.Router()
@@ -65,5 +67,6 @@ api.get('/private', auth.isAuth , auth.isPro , userCtrl.privado)
 // Peticiones al servidor de usuarios
 api.get('/users', auth.isAuth, userCtrl.getUsers)
 
+api.get('/eventos' , eventosCtrl.getEventos)
 
 module.exports = api

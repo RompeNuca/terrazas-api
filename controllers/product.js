@@ -20,11 +20,11 @@ const fs = require('fs');
           return {
             name: doc.name,
             price: doc.price,
-            productImage: doc.productImage,
+            productImage: `${config.domain}${config.port}/${doc.productImage}`,
             _id: doc._id,
             request: {
               type: "GET",
-              url: `${config.domain}${config.port}${doc._id}`
+              url: `${config.domain}${config.port}/api/product/${doc._id}`
             }
           };
         })
@@ -39,6 +39,17 @@ const fs = require('fs');
     });
 
 }
+// ACOTADO
+// function getProducts (req, res) {
+//
+//  Product.find({}, (err, products) => {
+//    if (err) return res.status(500).send({message: `Error al relaizar la peticion, ${err}`})
+//    if (!products) return res.status(404).send({message: `No hay productos`})
+//
+//    res.status(200).send({ products })
+//  })
+//
+// }
 
 function getProduct (req, res) {
 
@@ -47,7 +58,6 @@ function getProduct (req, res) {
   Product.findById(productId, (err, product) => {
     if (err) return res.status(500).send({message: `Error al relaizar la peticion, ${err}`})
     if (!product) return res.status(404).send({message: `El producto no existe`})
-
     res.status(200).send({ product })
   })
 
@@ -78,7 +88,7 @@ function updateProduct (req, res) {
   let product = req.body;
   let updateId = req.params.productId;
   let imageNew
-  var imageLast
+  let imageLast
 
 
   if (req.file) {
@@ -98,7 +108,7 @@ function updateProduct (req, res) {
       }else {
         console.log('la imagen es la misma');
       }
-    });
+    })
 
   }
 
@@ -116,18 +126,17 @@ function deleteProduct (req, res) {
 
   let productId = req.params.productId
 
-
   Product.findById(productId, (err, product) => {
     if (err) res.status(500).send({message: `Error al rborrar el producto, ${err}`})
     if (!product) return res.status(404).send({message: `El producto no existe`})
 
     fs.unlink(product.productImage, (err) => {
-      if (err) throw err;
+      if (err) res.status(500).send({message: `Error al borrar la imagen, ${err}`})
       console.log('la imagen fue eliminada');
     });
 
     product.remove(err => {
-      if (err) res.status(500).send({message: `Error al rborrar el producto, ${err}`})
+      if (err) res.status(500).send({message: `Error al borrar el producto, ${err}`})
       res.status(200).send({menssage: `El producto a sido eliminado`})
     })
   })
