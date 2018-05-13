@@ -2,6 +2,7 @@
 
 const config = require('../config');
 const mongoose = require('mongoose');
+const moment = require('moment');
 
 const Promo = require('../models/promo');
 const Eventt = require('../models/event');
@@ -14,7 +15,7 @@ function getValidPromos (req, res) {
 
  Promo.find({}, (err, el) => {
    if (err) return res.status(500).send({message: `Error al relaizar la peticion, ${err}`})
-   if (!el) return res.status(404).send({message: `No hay Eventos`})
+   if (!el) return res.status(404).send({message: `No hay Promos`})
 
    let promosValid = services.checkValidity(el)
    res.status(200).send({ promosValid })
@@ -53,10 +54,14 @@ function savePromo (req, res) {
   promo.legals = req.body.legals
   promo.stores = req.body.stores
   // puede requerir cambiar por req.body.validity.time depende de como pasemos la data desde el fornt
-  promo.validity.time = req.body.time
+
+  if (req.body.time) {
+  promo.validity.since = moment().format('YYYY-MM-DD HH:mm')
+  promo.validity.until = moment().add(req.body.time, 'hours').format('YYYY-MM-DD HH:mm')
+  }else {
   promo.validity.since = req.body.since
   promo.validity.until = req.body.until
-
+  }
 
   promo.save((err, promoStored) => {
     if (err) res.status(500).send({
@@ -94,25 +99,34 @@ function updatePromo (req, res) {
 
   const promo = req.body;
 
+  if (!promo.validity) {
+  promo.validity = {}
+  }
+  if (req.body.time) {
+  promo.validity.since = moment().format('YYYY-MM-DD HH:mm')
+  promo.validity.until = moment().add(req.body.time, 'hours').format('YYYY-MM-DD HH:mm')
+  }else {
+  promo.validity.since = req.body.since
+  promo.validity.until = req.body.until
+  }
+
   const updateId = req.params.promoId;
     var promoNewFathers  = req.body.father_id;
     var promoLastFathers = [];
 
   //Actualiza la foto
 
-    if (!promo.promoImage == undefined) {
-      promo.promoImage = '';
-    }
+  if (req.file) {
+  promo.promoImage = req.file.path;
+  }
 
-    if (req.file) {
-      promo.promoImage = req.file.path;
+  if (promo.promoImage) {
+      Promo.findOne({ _id: updateId })
+      .select(`_Id name promoImage`)
+      .exec(function (err, item) {
+        services.updateFile( updateId, promo.promoImage, item.promoImage);
+      })
     }
-    Promo.findOne({ _id: updateId })
-    .select(`_Id name promoImage`)
-    .exec(function (err, item) {
-      services.updateFile( updateId, promo.promoImage, item.promoImage);
-    })
-
 
   //Actualiza los ids de las promos dentro de lo Eventos
   //Se buscan los eventos relacionados a las promos.
@@ -157,37 +171,39 @@ function deletePromo (req, res) {
     if (err) res.status(500).send({message: `Error al borrar la promo, ${err}`})
     if (!promo) return res.status(404).send({message: `La promo no existe`})
 
-    fs.unlink(promo.promoImage, (err) => {
-      if (err) res.status(500).send({message: `Error al borrar la imagen de la promo, ${err}`})
-      console.log('la imagen de la promo fue eliminada');
-    });
-
-    for (var i = 0; i < promo.father_id.length; i++) {
-
-      let fatherId = promo.father_id[i]
-
-      if (fatherId) {
-
-        Eventt.findByIdAndUpdate(fatherId, {
-          $pull: {
-            promos: promo._id
-          }
-        }, function(err, eventt) {
-          if (err) return res.status(500).send({
-            message: `Error al actualizar el evento, ${err}`
-          })
-          if (!eventt) return res.status(404).send({
-            message: `El evento no existe`
-          })
-        })
-      }
-
+    if (promo.promoImage) {
+      fs.unlink(promo.promoImage, (err) => {
+        if (err) res.status(500).send({message: `Error al borrar la imagen de la promo, ${err}`})
+        console.log('la imagen de la promo fue eliminada');
+      });
     }
 
-    promo.remove(err => {
-      if (err) res.status(500).send({message: `Error al borrar la promo, ${err}`})
-      res.status(200).send({menssage: `La promo a sido eliminado`})
-    })
+    if (promo) {
+      for (var i = 0; i < promo.father_id.length; i++) {
+        let fatherId = promo.father_id[i]
+
+        if (fatherId) {
+          Eventt.findByIdAndUpdate(fatherId, {
+            $pull: {
+              promos: promo._id.toString()
+            }
+          }, function(err, eventt) {
+            if (err) return res.status(500).send({
+              message: `Error al actualizar el evento, ${err}`
+            })
+            if (!eventt) return res.status(404).send({
+              message: `El evento no existe`
+            })
+          })
+        }
+
+      }
+      promo.remove(err => {
+        if (err) res.status(500).send({message: `Error al borrar la promo, ${err}`})
+        res.status(200).send({menssage: `La promo a sido eliminado`})
+      })
+    }
+
   })
 
 }

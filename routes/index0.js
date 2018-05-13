@@ -1,6 +1,5 @@
 'use strict'
 
-
 const express = require('express');
 const productCtrl = require('../controllers/product');
 const userCtrl = require('../controllers/user');
@@ -12,13 +11,13 @@ const multer = require('multer');
 
 const api = express.Router()
 
+
 //Multer Setings
 const storage = multer.diskStorage({
   destination: function(req, file, cb) {
     cb(null, './upload/');
   },
   filename: function(req, file, cb) {
-
 
 
     cb(null,file.originalname);
@@ -75,11 +74,5 @@ api.get('/users', auth.isAuth, userCtrl.getUsers)
 api.get('/events' , eventCtrl.getValidEvents)
 api.post('/event' , eventCtrl.saveEvent)
 
-// Peticiones al servidor de eventos
-api.get('/promos' , promoCtrl.getValidPromos)
-api.get('/promo/:promoId' , promoCtrl.getValidPromo)
-api.post('/promo' , upload.single('promoImage'), promoCtrl.savePromo)
-api.patch('/promo/:promoId' , upload.single('promoImage'), promoCtrl.updatePromo)
-api.delete('/promo/:promoId' , promoCtrl.deletePromo)
 
 module.exports = api

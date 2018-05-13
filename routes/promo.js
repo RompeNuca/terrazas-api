@@ -1,6 +1,5 @@
 'use strict'
 
-
 const express = require('express');
 const promoCtrl = require('../controllers/promo');
 const auth = require('../middlewares/auth');
@@ -8,14 +7,16 @@ const multer = require('multer');
 
 const api = express.Router()
 
-//Multer Setings
+//Multer Setings //Quiza es necesario recibir el id desde el front para guardar
+//el nombre de las imagenes junto a este.
+
 const storage = multer.diskStorage({
   destination: function(req, file, cb) {
     cb(null, './upload/promos/');
   },
   filename: function(req, file, cb) {
 
-    cb(null, req.params.promoId + ' ' + file.originalname);
+    cb(null, file.originalname);
   }
 });
 
@@ -36,14 +37,14 @@ const upload = multer({
   fileFilter: fileFilter
 });
 
-api.get('/promos' , promoCtrl.getValidPromos)
+api.get('/' , promoCtrl.getValidPromos)
 
-api.get('/promo/:promoId' , promoCtrl.getValidPromo)
+api.get('/:promoId' , promoCtrl.getValidPromo)
 
-api.post('/promo' , upload.single('promoImage'), promoCtrl.savePromo)
+api.post('/' , upload.single('promoImage'), promoCtrl.savePromo)
 
-api.patch('/promo/:promoId' , upload.single('promoImage'), promoCtrl.updatePromo)
+api.patch('/:promoId' , upload.single('promoImage'), promoCtrl.updatePromo)
 
-api.delete('/promo/:promoId' , promoCtrl.deletePromo)
+api.delete('/:promoId' , promoCtrl.deletePromo)
 
-// module.exports = api
+module.exports = api

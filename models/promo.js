@@ -10,7 +10,7 @@ const PromoSchema = Schema({
     info: String,
     promoImage: String,
     validity: {
-      time: { type: String, default: '0000-01-00 00:00' },
+      // time: { type: String, default: '24' },
       since: String,
       until: String
     },

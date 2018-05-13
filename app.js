@@ -3,7 +3,9 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const app = express()
-const api = require('./routes');
+
+// const api = require('./routes');
+const promoRoutes = require("./routes/promo")
 
 
 app.use(bodyParser.urlencoded({ extended: false }))
@@ -21,8 +23,8 @@ app.use(function(req, res, next) {
     next();
 })
 
-
-app.use('/api', api)
+app.use("/api/promo", promoRoutes);
+// app.use('/api', api)
 
 
 

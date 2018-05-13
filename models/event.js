@@ -12,7 +12,7 @@ const EventSchema = Schema({
   promos: Array,
   date: { type: Date, default: Date.now() },
   validity: {
-    time: { type: String, default: '0000-01-00 00:00' },
+    // time: { type: String, default: '24' },
     since: String,
     until: String
     }

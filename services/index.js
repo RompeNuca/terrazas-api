@@ -47,13 +47,8 @@ function checkValidity(array) {
   function check(el) {
 
     let payload = {
-      iat: moment().unix(),
-      exp: moment().add(el.validity.time, 'YYYY-MM-DD HH:mm').unix()
-    }
-
-    if (el.validity.since) {
-      payload.iat = moment(el.validity.since, 'YYYY-MM-DD HH:mm').unix()
-      payload.exp = moment(el.validity.until, 'YYYY-MM-DD HH:mm').unix()
+      iat: moment(el.validity.since, 'YYYY-MM-DD HH:mm').unix(),
+      exp: moment(el.validity.until, 'YYYY-MM-DD HH:mm').unix()
     }
 
     return (moment().unix() >= payload.iat && moment().unix() <= payload.exp);
