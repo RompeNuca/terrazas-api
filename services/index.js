@@ -3,6 +3,8 @@
 const jwt = require('jwt-simple');
 const moment = require('moment');
 const config = require('../config');
+const fs = require('fs');
+
 
 function createToken(user) {
   const payload = {
@@ -40,37 +42,50 @@ function decodeToken(token) {
   return decoded
 }
 
-function verificarVigencia(array) {
+function checkValidity(array) {
 
-  function revisar(el) {
+  function check(el) {
 
     let payload = {
       iat: moment().unix(),
-      exp: moment().add(el.vigencia.tiempo, 'YYYY-MM-DD HH:mm').unix()
+      exp: moment().add(el.validity.time, 'YYYY-MM-DD HH:mm').unix()
     }
 
-    if (el.vigencia.desde) {
-      payload.iat = moment(el.vigencia.desde, 'YYYY-MM-DD HH:mm').unix()
-      payload.exp = moment(el.vigencia.hasta, 'YYYY-MM-DD HH:mm').unix()
+    if (el.validity.since) {
+      payload.iat = moment(el.validity.since, 'YYYY-MM-DD HH:mm').unix()
+      payload.exp = moment(el.validity.until, 'YYYY-MM-DD HH:mm').unix()
     }
 
     return (moment().unix() >= payload.iat && moment().unix() <= payload.exp);
   }
 
-  let elVigentes = []
+  let elValid = []
 
   for (var i = 0; i < array.length; i++) {
-    if (revisar(array[i])) {
-      elVigentes.push(array[i])
+    if (check(array[i])) {
+      elValid.push(array[i])
     }
   }
-  return elVigentes;
+  return elValid;
 }
 
+function updateFile(updateId, fileNew, fileLast){
+    if (fileLast) {
+      if (fileNew !== fileLast) {
+        fs.unlink(fileLast, (err) => {
+          if (err) throw err;
+          console.log('el archivo fue modificada');
+        });
+      }else {
+        console.log('el archivo es el mismo');
+      }
+    }
+}
 
 
 module.exports = {
   createToken,
   decodeToken,
-  verificarVigencia
+  checkValidity,
+  updateFile
 }

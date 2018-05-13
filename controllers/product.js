@@ -96,7 +96,9 @@ function updateProduct (req, res) {
       imageNew = req.file.path;
       product.productImage = imageNew;
 
-    Product.findOne({ _id: updateId }).select('_Id name productImage').exec(function (err, item) {
+    Product.findOne({ _id: updateId })
+    .select('_Id name productImage')
+    .exec(function (err, item) {
 
       imageLast = item.productImage
 
