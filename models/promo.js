@@ -4,7 +4,7 @@ const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 
 const PromoSchema = Schema({
-    father_id: Array,
+    eventts_id: Array,
     name: String,
     title: String,
     info: String,

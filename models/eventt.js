@@ -8,16 +8,19 @@ const EventSchema = Schema({
   type: { type: String, enum: ['destacado','simple'] },
   shortInfo: String,
   info: String,
-  eventImage: String,
-  promos: Array,
+  eventtImage: String,
+  eventtCover: String,
+  promos_id: Array,
   date: { type: Date, default: Date.now() },
+  day: String,
+  hour: Number,
   validity: {
     // time: { type: String, default: '24' },
     since: String,
     until: String
     }
   },{
-  collection: 'events'
+  collection: 'eventts'
 })
 
-module.exports = mongoose.model('Event', EventSchema)
+module.exports = mongoose.model('Eventt', EventSchema)

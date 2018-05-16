@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const moment = require('moment');
 
 const Promo = require('../models/promo');
-const Eventt = require('../models/event');
+const Eventt = require('../models/eventt');
 
 const services = require('../services');
 
@@ -44,16 +44,22 @@ function savePromo (req, res) {
 
   let promo = new Promo()
   promo._id = new mongoose.Types.ObjectId(),
-  promo.father_id = req.body.father_id
   promo.name = req.body.name
   promo.title = req.body.title
   promo.info = req.body.info
+  promo.legals = req.body.legals
+  promo.stores = req.body.stores
+
   if (req.file) {
   promo.promoImage = req.file.path
   }
-  promo.legals = req.body.legals
-  promo.stores = req.body.stores
-  // puede requerir cambiar por req.body.validity.time depende de como pasemos la data desde el fornt
+
+  promo.eventts_id = []
+  if (req.body.eventts_id) {
+  promo.eventts_id = req.body.eventts_id
+  }
+
+  // !!!puede requerir CAMBIAR por req.body.validity.time depende de como pasemos la data desde el fornt
 
   if (req.body.time) {
   promo.validity.since = moment().format('YYYY-MM-DD HH:mm')
@@ -63,6 +69,7 @@ function savePromo (req, res) {
   promo.validity.until = req.body.until
   }
 
+  //Guardar la promo en su coleccion
   promo.save((err, promoStored) => {
     if (err) res.status(500).send({
       message: `Error al salvar la promo, ${err}`
@@ -70,16 +77,122 @@ function savePromo (req, res) {
     res.status(200).send({
       promos: promoStored
     })
+  })
 
-    for (var i = 0; i < promoStored.father_id.length; i++) {
+  //Guardar el id de la promo en los eventos elegidos
+  if (promo.eventts_id && promo.eventts_id !== []) {
+    for (var i = 0; i < promo.eventts_id.length; i++) {
+      Eventt.findByIdAndUpdate(promo.eventts_id[i], {
+        $push: { promos_id: promo._id.toString() }
+      }, (err, item) => {
+        if (err)   return res.status(500).send({ message: `Error al actualizar el evento con la promo, ${err}` })
+        if (!item) return res.status(404).send({ message: `El evento no existe` })
+        // if (!item) return console.log(`cuidado un evento no existe o no se puedo encontrar`);
+      })
+    }
+  }
 
-      let fatherId = promoStored.father_id[i]
+}
 
-      if (fatherId) {
+function updatePromo (req, res) {
 
-        Eventt.findByIdAndUpdate(fatherId, {
-          $push: {
-            promos: promoStored._id.toString()
+  let promo = req.body;
+
+  let updateId = req.params.promoId;
+  let promoNewFathers  = req.body.eventts_id;
+  let promoLastFathers = [];
+
+  if (!promo.validity) {
+  promo.validity = {}
+  }
+  if (!promo.eventts_id) {
+  promo.eventts_id = []
+  }
+  if (req.file) {
+  promo.promoImage = req.file.path;
+  }
+  if (req.body.time) {
+  promo.validity.since = moment().format('YYYY-MM-DD HH:mm')
+  promo.validity.until = moment().add(req.body.time, 'hours').format('YYYY-MM-DD HH:mm')
+  }else {
+  promo.validity.since = req.body.since
+  promo.validity.until = req.body.until
+  }
+
+  Promo.findOne({ _id: updateId })
+  .select(`_id eventts_id promoImage`)
+  .exec(function (err, item) {
+    if (err) res.status(500).send({message: `Error al buscar la promo, ${err}`})
+
+    //Elimina la imagen
+    if (promo.promoImage && promo.promoImage == 'delete' && item.promoImage !== 'delete') {
+      fs.unlink(item.promoImage, (err) => {
+        if (err) res.status(500).send({message: `Error al borrar la imagen de la promo, ${err}`})
+        // console.log(`La imagen ${item.promoImage} fue eliminada`);
+      });
+    }
+
+    //Actualiza la imagen
+    if (promo.promoImage && promo.promoImage !== 'delete') {
+      services.updateFile( updateId, promo.promoImage, item.promoImage, (err) => {
+        if (err) res.status(500).send({message: `Error al actualizar la imagen de la promo, ${err}`})
+        // console.log(`La imagen ${item.promoImage} fue remplazada por ${promo.promoImage}`);
+      });
+    }
+
+    //Actualiza los ids de las promos dentro de lo Eventos
+    //Se buscan los eventos relacionados a las promos.
+    promoLastFathers = item.eventts_id
+
+    if (promoLastFathers) {
+     for (var i = 0; i < promoLastFathers.length; i++) {
+       Eventt.findByIdAndUpdate(promoLastFathers[i], { $pull: { promos_id: item._id.toString() }},
+        function(err, ok) {})
+      }
+    }
+
+    if (promoNewFathers) {
+    for (var f = 0; f < promoNewFathers.length; f++) {
+      Eventt.findByIdAndUpdate(promoNewFathers[f], { $push: { promos_id: item._id.toString() }},
+        function(err, ok) {})
+      }
+    }
+
+})
+
+  //Actualiza la Promo en su coleccion
+  Promo.findByIdAndUpdate( updateId, promo, (err, promoUpdate) => {
+    if (err) return res.status(500).send({message: `Error al actualizar la promo, ${err}`})
+    if (!promoUpdate) return res.status(404).send({message: `La promo no existe`})
+      res.status(200).send(promo)
+  })
+
+}
+
+function deletePromo (req, res) {
+
+  let promoId = req.params.promoId
+
+  // Busca la promo
+  Promo.findById(promoId, (err, promo) => {
+    if (err) res.status(500).send({message: `Error al borrar la promo, ${err}`})
+    if (!promo) return res.status(404).send({message: `La promo no existe`})
+
+    //Borrar la imagen de la promo si es que existe
+    if (promo.promoImage && promo.promoImage !== 'delete') {
+      fs.unlink(promo.promoImage, (err) => {
+        if (err) res.status(500).send({message: `Error al borrar la imagen de la promo, ${err}`})
+        // console.log('la imagen de la promo fue eliminada');
+      });
+    }
+
+    //Borrar la promo de los eventos en los que existe
+    for (var i = 0; i < promo.eventts_id.length; i++) {
+
+      if (promo.eventts_id[i]) {
+        Eventt.findByIdAndUpdate(promo.eventts_id[i], {
+          $pull: {
+            promos: promo._id.toString()
           }
         }, function(err, eventt) {
           if (err) return res.status(500).send({
@@ -91,118 +204,13 @@ function savePromo (req, res) {
         })
       }
     }
-  })
 
-}
+    //Borrar la promo en su coleccion
+    promo.remove(err => {
+      if (err) res.status(500).send({message: `Error al borrar la promo, ${err}`})
+      res.status(200).send({menssage: `La promo a sido eliminado`})
+    })
 
-function updatePromo (req, res) {
-
-  const promo = req.body;
-
-  if (!promo.validity) {
-  promo.validity = {}
-  }
-  if (req.body.time) {
-  promo.validity.since = moment().format('YYYY-MM-DD HH:mm')
-  promo.validity.until = moment().add(req.body.time, 'hours').format('YYYY-MM-DD HH:mm')
-  }else {
-  promo.validity.since = req.body.since
-  promo.validity.until = req.body.until
-  }
-
-  const updateId = req.params.promoId;
-    var promoNewFathers  = req.body.father_id;
-    var promoLastFathers = [];
-
-  //Actualiza la foto
-
-  if (req.file) {
-  promo.promoImage = req.file.path;
-  }
-
-  if (promo.promoImage) {
-      Promo.findOne({ _id: updateId })
-      .select(`_Id name promoImage`)
-      .exec(function (err, item) {
-        services.updateFile( updateId, promo.promoImage, item.promoImage);
-      })
-    }
-
-  //Actualiza los ids de las promos dentro de lo Eventos
-  //Se buscan los eventos relacionados a las promos.
-  Promo.findOne({ _id: updateId })
-  .select(`_id father_id`)
-  .exec(function (err, pro) {
-
-     promoLastFathers = pro.father_id
-
-     if (promoLastFathers) {
-       for (var i = 0; i < promoLastFathers.length; i++) {
-         Eventt.findByIdAndUpdate(promoLastFathers[i], { $pull: { promos: pro._id.toString() }},
-          function(err, ok) {})
-       }
-    }
-
-
-     if (promoNewFathers) {
-       for (var f = 0; f < promoNewFathers.length; f++) {
-        Eventt.findByIdAndUpdate(promoNewFathers[f], { $push: { promos: pro._id.toString() }},
-          function(err, ok) {})
-       }
-     }
-
-  })
-
-  //Actualiza la Promo en su coleccion
-  Promo.findByIdAndUpdate( updateId, promo, (err, promoUpdate) => {
-
-    if (err) return res.status(500).send({message: `Error al actualizar la promo, ${err}`})
-    if (!promoUpdate) return res.status(404).send({message: `La promo no existe`})
-    res.status(200).send({ promo: promo })
-
-  })
-}
-
-function deletePromo (req, res) {
-
-  let promoId = req.params.promoId
-
-  Promo.findById(promoId, (err, promo) => {
-    if (err) res.status(500).send({message: `Error al borrar la promo, ${err}`})
-    if (!promo) return res.status(404).send({message: `La promo no existe`})
-
-    if (promo.promoImage) {
-      fs.unlink(promo.promoImage, (err) => {
-        if (err) res.status(500).send({message: `Error al borrar la imagen de la promo, ${err}`})
-        console.log('la imagen de la promo fue eliminada');
-      });
-    }
-
-    if (promo) {
-      for (var i = 0; i < promo.father_id.length; i++) {
-        let fatherId = promo.father_id[i]
-
-        if (fatherId) {
-          Eventt.findByIdAndUpdate(fatherId, {
-            $pull: {
-              promos: promo._id.toString()
-            }
-          }, function(err, eventt) {
-            if (err) return res.status(500).send({
-              message: `Error al actualizar el evento, ${err}`
-            })
-            if (!eventt) return res.status(404).send({
-              message: `El evento no existe`
-            })
-          })
-        }
-
-      }
-      promo.remove(err => {
-        if (err) res.status(500).send({message: `Error al borrar la promo, ${err}`})
-        res.status(200).send({menssage: `La promo a sido eliminado`})
-      })
-    }
 
   })
 

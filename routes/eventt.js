@@ -1,7 +1,7 @@
 'use strict'
 
 const express = require('express');
-const promoCtrl = require('../controllers/promo');
+const eventtCtrl = require('../controllers/eventt');
 const auth = require('../middlewares/auth');
 const multer = require('multer');
 
@@ -12,11 +12,11 @@ const api = express.Router()
 
 const storage = multer.diskStorage({
   destination: function(req, file, cb) {
-    cb(null, './upload/promos/');
+    cb(null, './upload/eventt/');
   },
   filename: function(req, file, cb) {
 
-    cb(null, `${req.body.name.replace(/ /g, '-')}-${file.originalname.replace(/ /g, '-')}`);
+    cb(null, `${req.body.name.replace(/ /g, '-')}-${file.originalname}`);
   }
 });
 
@@ -37,14 +37,12 @@ const upload = multer({
   fileFilter: fileFilter
 });
 
-api.get('/' , promoCtrl.getValidPromos)
+var cpUpload = upload.fields([{ name: 'eventtImage', maxCount: 1 }, { name: 'gallery', maxCount: 8 }])
 
-api.get('/:promoId' , promoCtrl.getValidPromo)
+api.get('/' , eventtCtrl.getValidEventts)
 
-api.post('/' , upload.single('promoImage'), promoCtrl.savePromo)
+api.post('/' , eventtCtrl.saveEventt)
 
-api.patch('/:promoId' , upload.single('promoImage'), promoCtrl.updatePromo)
-
-api.delete('/:promoId' , promoCtrl.deletePromo)
+api.patch('/:eventtId' , upload.single('eventtImage') , eventtCtrl.updateEventt)
 
 module.exports = api

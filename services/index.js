@@ -65,7 +65,8 @@ function checkValidity(array) {
 }
 
 function updateFile(updateId, fileNew, fileLast){
-    if (fileLast) {
+
+    if (fileLast && fileLast !== 'delete') {
       if (fileNew !== fileLast) {
         fs.unlink(fileLast, (err) => {
           if (err) throw err;
