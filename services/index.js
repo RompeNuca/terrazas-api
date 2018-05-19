@@ -42,27 +42,45 @@ function decodeToken(token) {
   return decoded
 }
 
-function checkValidity(array) {
+//VALIDACIONES DE TIEMPO
+function check(el) {
 
-  function check(el) {
-
-    let payload = {
-      iat: moment(el.validity.since, 'YYYY-MM-DD HH:mm').unix(),
-      exp: moment(el.validity.until, 'YYYY-MM-DD HH:mm').unix()
-    }
-
-    return (moment().unix() >= payload.iat && moment().unix() <= payload.exp);
+  let payload = {
+    iat: moment(el.validity.since, 'YYYY-MM-DD HH:mm').unix(),
+    exp: moment(el.validity.until, 'YYYY-MM-DD HH:mm').unix()
   }
+
+  return (moment().unix() >= payload.iat && moment().unix() <= payload.exp);
+}
+
+function filterValidity(array) {
 
   let elValid = []
 
   for (var i = 0; i < array.length; i++) {
     if (check(array[i])) {
+      array[i].validity.state = true
       elValid.push(array[i])
     }
   }
   return elValid;
+
 }
+
+function checkValidity(array) {
+
+  for (var i = 0; i < array.length; i++) {
+    if (check(array[i])) {
+      array[i].validity.state = true
+
+    }
+  }
+
+  return array;
+
+}
+
+
 
 function updateFile(updateId, fileNew, fileLast){
 
@@ -83,5 +101,6 @@ module.exports = {
   createToken,
   decodeToken,
   checkValidity,
+  filterValidity,
   updateFile
 }

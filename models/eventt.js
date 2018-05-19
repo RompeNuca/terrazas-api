@@ -4,18 +4,19 @@ const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 
 const EventSchema = Schema({
+  _id: mongoose.Schema.Types.ObjectId,
   title: String,
   type: { type: String, enum: ['destacado','simple'] },
   shortInfo: String,
   info: String,
   eventtImage: String,
   eventtCover: String,
-  promos_id: Array,
+  promos: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Promo'}],
   date: { type: Date, default: Date.now() },
   day: String,
   hour: Number,
   validity: {
-    // time: { type: String, default: '24' },
+    state: false,
     since: String,
     until: String
     }

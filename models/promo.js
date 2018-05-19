@@ -4,13 +4,14 @@ const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 
 const PromoSchema = Schema({
-    eventts_id: Array,
+    _id: mongoose.Schema.Types.ObjectId,
+    eventts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Eventt'}],
     name: String,
     title: String,
     info: String,
     promoImage: String,
     validity: {
-      // time: { type: String, default: '24' },
+      state: false,
       since: String,
       until: String
     },

@@ -12,22 +12,25 @@ const services = require('../services');
 const fs = require('fs');
 
 
-
 function getValidEventts (req, res) {
 
- Eventt.find({}, (err, el) => {
-   if (err) return res.status(500).send({message: `Error al relaizar la peticion, ${err}`})
-   if (!el) return res.status(404).send({message: `No hay Eventos`})
+  Eventt.find()
+        .populate('promos')
+        .exec()
+        .then(full => {
+          console.log(full);
+          res.status(200).send({ full })
+        })
 
-   const eventValid = services.checkValidity(el)
-   res.status(200).send({ eventValid })
- })
+  }
 
-}
+
+
 
 function saveEventt (req, res) {
 
   console.log('POST /api/event');
+
   // console.log(req.body);
 
   let eventt = new Eventt()
@@ -39,8 +42,11 @@ function saveEventt (req, res) {
   eventt.date = req.body.date
   eventt.promos_id = []
 
-  if (req.file) {
-  eventt.eventtImage = req.file.path
+  if (req.files.eventtImage) {
+  eventt.eventtImage = req.files.eventtImage[0].path
+  }
+  if (req.files.eventtCover) {
+  eventt.eventtCover = req.files.eventtCover[0].path
   }
 
   // puede requerir cambiar por req.body.validity.time depende de como pasemos la data desde el fornt
@@ -65,7 +71,7 @@ function saveEventt (req, res) {
 
         Promo.findByIdAndUpdate(promoId, {
           $push: {
-            eventts_id: eventtStored._id.toString()
+            eventts_id: mongoose.Types.ObjectId(eventtStored._id)
           }
         }, function(err, promo) {
 
@@ -101,8 +107,11 @@ function updateEventt (req, res) {
   eventt.promos_id = []
   }
 
-  if (req.file) {
-  eventt.eventtImage = req.file.path;
+  if (req.files.eventtImage) {
+  eventt.eventtImage = req.files.eventtImage[0].path
+  }
+  if (req.files.eventtCover) {
+  eventt.eventtCover = req.files.eventtCover[0].path
   }
 
   if (req.body.time) {
@@ -125,13 +134,22 @@ function updateEventt (req, res) {
       if (err) res.status(500).send({message: `Error al borrar la imagen de la eventt, ${err}`})
     });
   }
+  if (eventt.eventtCover == 'deleted') {
+    fs.unlink(eventt.eventtCover, (err) => {
+      if (err) res.status(500).send({message: `Error al borrar la portada de la eventt, ${err}`})
+    });
+  }
 
-  if (eventt.eventtImage) {
+  if (eventt.eventtImage || eventt.eventtCover) {
       Eventt.findOne({ _id: updateId })
-      .select(`_Id name eventImage`)
+      .select(`_Id name eventImage eventtCover`)
       .exec(function (err, item) {
         if (err) res.status(500).send({message: `Error al buscar la eventt, ${err}`})
-        services.updateFile( updateId, eventt.eventtImage, item.eventtImage);
+        if (eventt.eventtImage) {
+          services.updateFile( updateId, eventt.eventtImage, item.eventtImage);
+        }else {
+          services.updateFile( updateId, eventt.eventtCover, item.eventtCover);
+        }
       })
     }
 
@@ -144,7 +162,7 @@ function updateEventt (req, res) {
 
      if (promoLastFathers) {
        for (var i = 0; i < promoLastFathers.length; i++) {
-         Promo.findByIdAndUpdate(promoLastFathers[i], { $pull: { eventts_id: eve._id.toString() }},
+         Promo.findByIdAndUpdate(promoLastFathers[i], { $pull: { eventts_id: mongoose.Types.ObjectId(eve._id) }},
           function(err, ok) {})
        }
     }
@@ -152,7 +170,7 @@ function updateEventt (req, res) {
 
      if (promoNewFathers) {
        for (var f = 0; f < promoNewFathers.length; f++) {
-        Promo.findByIdAndUpdate(promoNewFathers[f], { $push: { eventts_id: eve._id.toString() }},
+        Promo.findByIdAndUpdate(promoNewFathers[f], { $push: { eventts_id: mongoose.Types.ObjectId(eve._id)}},
           function(err, ok) {})
        }
      }
@@ -169,9 +187,63 @@ function updateEventt (req, res) {
   })
 }
 
+function deleteEventt (req, res) {
+
+  let eventtId = req.params.eventtId
+
+
+  // Busca el evento
+  Eventt.findById(eventtId, (err, eventt) => {
+    if (err) res.status(500).send({message: `Error al borrar el evento, ${err}`})
+    if (!eventt) return res.status(404).send({message: `El evento no existe`})
+
+    //Borrar la imagen del  evento si es que existe
+    if (eventt.eventtImage && eventt.eventtImage !== 'delete') {
+      fs.unlink(eventt.eventtImage, (err) => {
+        if (err) res.status(500).send({message: `Error al borrar la imagen del evento, ${err}`})
+        // console.log('la imagen del evento fue eliminada');
+      });
+    }
+    if (eventt.eventtCover && eventt.eventtCover !== 'delete') {
+      fs.unlink(eventt.eventtCover, (err) => {
+        if (err) res.status(500).send({message: `Error al borrar la imagen del evento, ${err}`})
+        // console.log('la imagen del evento fue eliminada');
+      });
+    }
+
+    //Borrar el evento de las promos en los que existe
+    for (var i = 0; i < eventt.promos_id.length; i++) {
+
+      if (eventt.promos_id[i]) {
+        Promo.findByIdAndUpdate(eventt.promos_id[i], {
+          $pull: {
+            eventts_id: mongoose.Types.ObjectId(eventt._id)
+          }
+        }, function(err, promo) {
+          if (err) return res.status(500).send({
+            message: `Error al actualizar la promo, ${err}`
+          })
+          if (!promo) return res.status(404).send({
+            message: `la promo no existe`
+          })
+        })
+      }
+    }
+
+    //Borrar el evento en su coleccion
+    eventt.remove(err => {
+      if (err) res.status(500).send({message: `Error al borrar el evento, ${err}`})
+      res.status(200).send({menssage: `El evento a sido eliminado`})
+    })
+
+  })
+
+}
+
 
 module.exports = {
   getValidEventts,
   saveEventt,
-  updateEventt
+  updateEventt,
+  deleteEventt
 }

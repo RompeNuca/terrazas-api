@@ -16,7 +16,7 @@ const storage = multer.diskStorage({
   },
   filename: function(req, file, cb) {
 
-    cb(null, `${req.body.name.replace(/ /g, '-')}-${file.originalname}`);
+    cb(null, `${file.originalname}`);
   }
 });
 
@@ -37,12 +37,15 @@ const upload = multer({
   fileFilter: fileFilter
 });
 
-var cpUpload = upload.fields([{ name: 'eventtImage', maxCount: 1 }, { name: 'gallery', maxCount: 8 }])
+var eventtUpload = upload.fields([{ name: 'eventtImage', maxCount: 1 }, { name: 'eventtCover', maxCount: 1 }])
+//EJEMPLO PARA COLECCIONES var eventtUpload = upload.fields([{ name: 'eventtImage', maxCount: 1 }, { name: 'eventtCover', maxCount: 1 }])
 
 api.get('/' , eventtCtrl.getValidEventts)
 
-api.post('/' , eventtCtrl.saveEventt)
+api.post('/' , eventtUpload , eventtCtrl.saveEventt)
 
-api.patch('/:eventtId' , upload.single('eventtImage') , eventtCtrl.updateEventt)
+api.patch('/:eventtId' , eventtUpload , eventtCtrl.updateEventt)
+
+api.delete('/:eventtId' , eventtCtrl.deleteEventt)
 
 module.exports = api
