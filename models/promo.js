@@ -7,11 +7,12 @@ const PromoSchema = Schema({
     _id: mongoose.Schema.Types.ObjectId,
     eventts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Eventt'}],
     name: String,
-    title: String,
+    title: String, //por ahora no lo utilizo
     info: String,
     promoImage: String,
+    lastEdit: Number,
     validity: {
-      state: false,
+      state: { type: Boolean, default: false },
       since: String,
       until: String
     },

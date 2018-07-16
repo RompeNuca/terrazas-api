@@ -15,8 +15,11 @@ const storage = multer.diskStorage({
     cb(null, './upload/eventt/');
   },
   filename: function(req, file, cb) {
-
-    cb(null, `${file.originalname}`);
+    if (req.params.eventtId) {
+      cb(null, `${req.params.eventtId}-${file.fieldname.replace(/ /g, '-')}-${file.originalname.replace(/ /g, '-')}`);
+    } else {
+      cb(null, `${req.body._id}-${file.fieldname.replace(/ /g, '-')}-${file.originalname.replace(/ /g, '-')}`);
+    }
   }
 });
 
@@ -37,10 +40,12 @@ const upload = multer({
   fileFilter: fileFilter
 });
 
-var eventtUpload = upload.fields([{ name: 'eventtImage', maxCount: 1 }, { name: 'eventtCover', maxCount: 1 }])
+var eventtUpload = upload.fields([{ name: 'eventtImage', maxCount: 5 }, { name: 'eventtCover', maxCount: 5 }])
 //EJEMPLO PARA COLECCIONES var eventtUpload = upload.fields([{ name: 'eventtImage', maxCount: 1 }, { name: 'eventtCover', maxCount: 1 }])
 
 api.get('/' , eventtCtrl.getValidEventts)
+
+api.get('/simple' , eventtCtrl.getSimpleEventts)
 
 api.post('/' , eventtUpload , eventtCtrl.saveEventt)
 

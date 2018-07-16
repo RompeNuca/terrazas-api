@@ -4,20 +4,19 @@ const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 
 const StoreSchema = Schema({
+    _id: mongoose.Schema.Types.ObjectId,
+    nStore: Number,
     name: String,
+    info: String,
+    web: String,
+    tel: String,
     logo: String,
-    pos: Number,
-    floor: Number,
-    type: { type: String, enum: ['Local', 'Stand'] }
-    category: Array,
-    category_id: Array,
-    info: {
-      text: String,
-      web: String,
-      tel: String,
-    }
-},{
-  collection: 'stores'
+    floor: String,
+    state: Boolean,
+    type: String,
+    category: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Category'}],
+}, {
+    collection: 'stores'
 })
 
 module.exports = mongoose.model('Store', StoreSchema)

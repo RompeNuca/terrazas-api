@@ -7,100 +7,95 @@ const fs = require('fs');
 
 
 function createToken(user) {
-  const payload = {
-     sub: user.public_Id,
-    iat: moment().unix(),
-    exp: moment().add(30, 'days').unix()
-  }
+    const payload = {
+        sub: user.public_Id,
+        iat: moment().unix(),
+        exp: moment().add(30, 'days').unix()
+    }
 
-  return jwt.encode(payload, config.SECRET_TOKEN)
+    return jwt.encode(payload, config.SECRET_TOKEN)
 }
 
 function decodeToken(token) {
-  const decoded = new Promise((resolve, reject) => {
-    try {
+    const decoded = new Promise((resolve, reject) => {
+        try {
 
-      const payload = jwt.decode(token, config.SECRET_TOKEN)
+            const payload = jwt.decode(token, config.SECRET_TOKEN)
 
-      if (payload.exp <= payload.iat) {
-        reject({
-          status: 401,
-          menssage: `Token expirado`
-        })
-      }
+            if (payload.exp <= payload.iat) {
+                reject({
+                    status: 401,
+                    menssage: `Token expirado`
+                })
+            }
 
-      resolve(payload.sub)
+            resolve(payload.sub)
 
-    } catch (err) {
-      reject({
-        status: 500,
-        menssage: `Token invalido`
-      })
-    }
-  })
+        } catch (err) {
+            reject({
+                status: 500,
+                menssage: `Token invalido`
+            })
+        }
+    })
 
-  return decoded
+    return decoded
 }
 
 //VALIDACIONES DE TIEMPO
 function check(el) {
 
-  let payload = {
-    iat: moment(el.validity.since, 'YYYY-MM-DD HH:mm').unix(),
-    exp: moment(el.validity.until, 'YYYY-MM-DD HH:mm').unix()
-  }
+    let payload = {
+        iat: moment(el.validity.since, 'YYYY-MM-DD HH:mm').unix(),
+        exp: moment(el.validity.until, 'YYYY-MM-DD HH:mm').unix()
+    }
 
-  return (moment().unix() >= payload.iat && moment().unix() <= payload.exp);
+    return (moment().unix() >= payload.iat && moment().unix() <= payload.exp);
 }
 
 function filterValidity(array) {
 
-  let elValid = []
+    let elValid = []
 
-  for (var i = 0; i < array.length; i++) {
-    if (check(array[i])) {
-      array[i].validity.state = true
-      elValid.push(array[i])
+    for (var i = 0; i < array.length; i++) {
+        if (check(array[i])) {
+            array[i].validity.state = true
+            elValid.push(array[i])
+        }
     }
-  }
-  return elValid;
+    return elValid;
 
 }
 
 function checkValidity(array) {
 
-  for (var i = 0; i < array.length; i++) {
-    if (check(array[i])) {
-      array[i].validity.state = true
-
+    for (var i = 0; i < array.length; i++) {
+        if (check(array[i])) {
+            array[i].validity.state = true
+        }
     }
-  }
-
-  return array;
-
+    return array;
 }
 
 
-
-function updateFile(updateId, fileNew, fileLast){
-
+function updateFile(updateId, fileNew, fileLast) {
     if (fileLast && fileLast !== 'delete') {
-      if (fileNew !== fileLast) {
-        fs.unlink(fileLast, (err) => {
-          if (err) throw err;
-          console.log('el archivo fue modificada');
-        });
-      }else {
-        console.log('el archivo es el mismo');
-      }
+        if (fileNew !== fileLast) {
+            fs.unlink(fileLast, (err) => {
+                if (err) throw err;
+                console.log('el archivo fue modificada');
+            });
+        } else {
+            console.log('el archivo es el mismo');
+        }
     }
 }
 
 
 module.exports = {
-  createToken,
-  decodeToken,
-  checkValidity,
-  filterValidity,
-  updateFile
+    createToken,
+    decodeToken,
+    checkValidity,
+    filterValidity,
+    updateFile
 }

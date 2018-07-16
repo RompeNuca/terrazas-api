@@ -1,6 +1,7 @@
 'use strict'
 
 const express = require('express');
+const config = require('../config');
 const promoCtrl = require('../controllers/promo');
 const auth = require('../middlewares/auth');
 const multer = require('multer');
@@ -15,14 +16,17 @@ const storage = multer.diskStorage({
     cb(null, './upload/promos/');
   },
   filename: function(req, file, cb) {
-
-    cb(null, `${req.body.name.replace(/ /g, '-')}-${file.originalname.replace(/ /g, '-')}`);
+    if (req.params.promoId) {
+      cb(null, `${req.params.promoId}-${file.originalname.replace(/ /g, '-')}`);
+    } else {
+      cb(null, `${req.body._id}-${file.originalname.replace(/ /g, '-')}`);
+    }
   }
 });
 
 const fileFilter = (req, file, cb) => {
   // reject a file
-  if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
+  if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'image/gif') {
     cb(null, true);
   } else {
     cb(null, false);
@@ -37,14 +41,16 @@ const upload = multer({
   fileFilter: fileFilter
 });
 
-api.get('/' , promoCtrl.getValidPromos)
+api.get('/' , auth.isAuth, promoCtrl.getValidPromos)
 
-api.get('/:promoId' , promoCtrl.getValidPromo)
+api.get('/simple' , promoCtrl.getSimplePromos)
 
-api.post('/' , upload.single('promoImage'), promoCtrl.savePromo)
+api.get('/:promoId' , auth.isAuth, promoCtrl.getValidPromo)
 
-api.patch('/:promoId' , upload.single('promoImage'), promoCtrl.updatePromo)
+api.post('/', upload.single('promoImage'), promoCtrl.savePromo)
 
-api.delete('/:promoId' , promoCtrl.deletePromo)
+api.patch('/:promoId' ,  upload.single('promoImage'), promoCtrl.updatePromo)
+
+api.delete('/:promoId' , auth.isAuth, promoCtrl.deletePromo)
 
 module.exports = api

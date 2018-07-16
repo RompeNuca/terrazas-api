@@ -6,15 +6,15 @@ const Schema = mongoose.Schema
 const EventSchema = Schema({
   _id: mongoose.Schema.Types.ObjectId,
   title: String,
-  type: { type: String, enum: ['destacado','simple'] },
+  type: { type: Boolean},
   shortInfo: String,
   info: String,
   eventtImage: String,
   eventtCover: String,
   promos: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Promo'}],
-  date: { type: Date, default: Date.now() },
+  lastEdit: Number,
   day: String,
-  hour: Number,
+  hour: String,
   validity: {
     state: false,
     since: String,
