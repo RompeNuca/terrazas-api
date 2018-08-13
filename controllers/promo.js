@@ -84,7 +84,7 @@ function savePromo (req, res) {
   promo.validity.since = req.body.since
   promo.validity.until = req.body.until
   }
-
+  console.log(promo);
   //Guardar la promo en su coleccion
   promo.save((err, promoStored) => {
     if (err) res.status(500).send({
@@ -96,17 +96,17 @@ function savePromo (req, res) {
   })
 
   //Guardar el id de la promo en los eventos elegidos
-  if (promo.eventts && promo.eventts !== []) {
-    for (var i = 0; i < promo.eventts.length; i++) {
-      Eventt.findByIdAndUpdate(promo.eventts[i], {
-        $push: { promos: mongoose.Types.ObjectId(promo._id) }
-      }, (err, item) => {
-        if (err)   return res.status(500).send({ message: `Error al actualizar el evento con la promo, ${err}` })
-        if (!item) return res.status(404).send({ message: `El evento no existe` })
-        // if (!item) return console.log(`cuidado un evento no existe o no se puedo encontrar`);
-      })
-    }
-  }
+  // if (promo.eventts && promo.eventts !== []) {
+  //   for (var i = 0; i < promo.eventts.length; i++) {
+  //     Eventt.findByIdAndUpdate(promo.eventts[i], {
+  //       $push: { promos: mongoose.Types.ObjectId(promo._id) }
+  //     }, (err, item) => {
+  //       if (err)   return res.status(500).send({ message: `Error al actualizar el evento con la promo, ${err}` })
+  //       if (!item) return res.status(404).send({ message: `El evento no existe` })
+  //       // if (!item) return console.log(`cuidado un evento no existe o no se puedo encontrar`);
+  //     })
+  //   }
+  // }
 
 }
 

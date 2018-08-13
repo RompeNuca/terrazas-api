@@ -16,7 +16,7 @@ const EventSchema = Schema({
   day: String,
   hour: String,
   validity: {
-    state: false,
+    state: { type: Boolean, default: false },
     since: String,
     until: String
     }

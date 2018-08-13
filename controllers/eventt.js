@@ -67,7 +67,6 @@ function saveEventt(req, res) {
     // console.log(req.body);
 
     let eventt = new Eventt()
-    eventt._id = new mongoose.Types.ObjectId(),
     eventt._id = req.body._id
     eventt.title = req.body.title
     eventt.type = req.body.type
@@ -86,6 +85,9 @@ function saveEventt(req, res) {
         eventt.eventtCover = req.files.eventtCover[0].path
     }
 
+    console.log(eventt.eventtCover);
+    
+
     // puede requerir cambiar por req.body.validity.time depende de como pasemos la data desde el fornt
     if (req.body.time) {
         eventt.validity.since = moment().format('YYYY-MM-DD HH:mm')
@@ -96,43 +98,39 @@ function saveEventt(req, res) {
     }
 
     //fomra complicada la dejo aca para guardarla por las dudas
-    if (req.body.promos && !Array.isArray(req.body.promos)) {
-        eventt.promos = [req.body.promos]
-    } else if(req.body.promos){
-        eventt.promos = req.body.promos;
+    // if (req.body.promos && !Array.isArray(req.body.promos)) {
+    //     eventt.promos = [req.body.promos]
+    // } else if(req.body.promos){
+    //     eventt.promos = req.body.promos;
+    // }
+
+    eventt.promos = []
+    if (req.body.promos) {
+    eventt.promos = req.body.promos
     }
-
+    
+    //Guardar el evento en su coleccion
     eventt.save((err, eventtStored) => {
-
-        if (eventtStored.promos && eventtStored.promos !== []) {
-            for (var i = 0; i < eventtStored.promos.length; i++) {
-
-                let promoId = eventtStored.promos[i]
-
-                Promo.findByIdAndUpdate(promoId, {
-                    $push: {
-                        eventts: mongoose.Types.ObjectId(eventtStored._id)
-                    }
-                }, function(err, promo) {
-
-                    if (err) return res.status(500).send({
-                        message: `Error al salvar el evento en promos, ${err}`
-                    })
-                    if (!eventt) return res.status(404).send({
-                        message: `La promo no existe`
-                    })
-                })
-            }
-        }
-
-        if (err) res.status(500).send({
-            message: `Error al salvar el evento, ${err}`
+        if (err) res.status(500).send({    
+        message: `Error al salvar el evento, ${err}`
         })
         res.status(200).send({
-            evento: eventtStored
+        message: `El evento se creo correctamente`
         })
-
     })
+
+  //Guardar el id del evento en las proms elegidas
+  if (eventt.promos && eventt.promos !== []) {
+    for (var i = 0; i < eventt.promos.length; i++) {
+      Promo.findByIdAndUpdate(eventt.promos[i], {
+        $push: { eventts: mongoose.Types.ObjectId(eventt._id) }
+      }, (err, item) => {
+        if (err)   return res.status(500).send({ message: `Error al actualizar el evento con la promo, ${err}` })
+        if (!item) return res.status(404).send({ message: `El evento no existe` })
+      })
+    }
+  }
+
 }
 
 function updateEventt(req, res) {
