@@ -4,6 +4,7 @@ const jwt = require('jwt-simple');
 const moment = require('moment');
 const config = require('../config');
 const fs = require('fs');
+const cloudinary = require('cloudinary');
 
 
 function createToken(user) {
@@ -91,11 +92,45 @@ function updateFile(updateId, fileNew, fileLast) {
     }
 }
 
+cloudinary.config(config.cloudConfig);
+
+function deleteFileCloud( file, path, error ){
+
+  let filePublicId = path + file.split('/').pop().slice(0,-4)
+
+  cloudinary.v2.uploader.destroy(
+    filePublicId,
+    (error, result) => {
+      if (error) {
+        error(error)
+      }
+    });
+}
+
+function uploadFileCloud( file, path, cb ){
+
+  let up =  file.slice(config['path'].length) 
+
+  cloudinary.v2.uploader.upload(
+    up,
+    {use_filename: true,
+    folder: path},
+    (error, result) => {
+      cb(result)
+      if (error) {
+        cb('err')
+        console.log(error);
+      }
+    });
+}
+
 
 module.exports = {
     createToken,
     decodeToken,
     checkValidity,
     filterValidity,
-    updateFile
+    updateFile,
+    uploadFileCloud,
+    deleteFileCloud
 }

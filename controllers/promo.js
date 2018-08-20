@@ -3,13 +3,16 @@
 const config = require('../config');
 const mongoose = require('mongoose');
 const moment = require('moment');
-
+const cloudinary = require('cloudinary');
 const Promo = require('../models/promo');
 const Eventt = require('../models/eventt');
 
 const services = require('../services');
 
 const fs = require('fs');
+
+cloudinary.config(config.cloudConfig);
+let promoPath = 'api-demo/promos/'
 
 function getSimplePromos(req, res) {
   Promo.find()
@@ -67,15 +70,13 @@ function savePromo (req, res) {
   promo.lastEdit = moment().unix()
 
   if (req.file) {
-  promo.promoImage = req.file.path
+  promo.promoImage = config.domain + config.port + '/' + req.file.path
   }
 
   promo.eventts = []
   if (req.body.eventts) {
   promo.eventts = req.body.eventts
   }
-
-  // !!!puede requerir CAMBIAR por req.body.validity.time depende de como pasemos la data desde el fornt
 
   if (req.body.time) {
   promo.validity.since = moment().format('YYYY-MM-DD HH:mm')
@@ -84,29 +85,44 @@ function savePromo (req, res) {
   promo.validity.since = req.body.since
   promo.validity.until = req.body.until
   }
-  console.log(promo);
-  //Guardar la promo en su coleccion
-  promo.save((err, promoStored) => {
-    if (err) res.status(500).send({
-      message: `Error al salvar la promo, ${err}`
-    })
-    res.status(200).send({
-      message: `La promo se creo correctamente`
+
+  //Sube la imagen a el cloud
+  services.uploadFileCloud ( promo.promoImage, promoPath, wow => {
+    //Espera que la imagen suba y despues...
+    if (wow = 'err') res.status(500).send({message: `Error al guardar la imagen en la nube`})
+
+    //Borra el archivo de la carpeta temporal
+   
+    let fileRute = req.file.path
+    fs.unlink(fileRute, (err) => {
+      if (err) res.status(500).send({message: `Error al borrar la imagen temporal de la promo, ${err}`})
+    });
+    //guarda el path de la imagen ya cargada en la nube
+    promo.promoImage = wow.secure_url
+
+    //Guardar la promo en su coleccion
+    promo.save((err, promoStored) => {
+      if (err) res.status(500).send({
+        message: `Error al salvar la promo, ${err}`
+      })
+      res.status(200).send({
+        message: `La promo se creo correctamente`
+      })
     })
   })
 
   //Guardar el id de la promo en los eventos elegidos
-  // if (promo.eventts && promo.eventts !== []) {
-  //   for (var i = 0; i < promo.eventts.length; i++) {
-  //     Eventt.findByIdAndUpdate(promo.eventts[i], {
-  //       $push: { promos: mongoose.Types.ObjectId(promo._id) }
-  //     }, (err, item) => {
-  //       if (err)   return res.status(500).send({ message: `Error al actualizar el evento con la promo, ${err}` })
-  //       if (!item) return res.status(404).send({ message: `El evento no existe` })
-  //       // if (!item) return console.log(`cuidado un evento no existe o no se puedo encontrar`);
-  //     })
-  //   }
-  // }
+  if (promo.eventts && promo.eventts !== []) {
+    for (var i = 0; i < promo.eventts.length; i++) {
+      Eventt.findByIdAndUpdate(promo.eventts[i], {
+        $push: { promos: mongoose.Types.ObjectId(promo._id) }
+      }, (err, item) => {
+        if (err)   return res.status(500).send({ message: `Error al actualizar el evento con la promo, ${err}` })
+        if (!item) return res.status(404).send({ message: `El evento no existe` })
+        // if (!item) return console.log(`cuidado un evento no existe o no se puedo encontrar`);
+      })
+    }
+  }
 
 }
 
@@ -115,7 +131,7 @@ function updatePromo(req, res) {
   let promo = req.body;
   let updateId = req.params.promoId;
 
-      promo.lastEdit = moment().unix()
+    promo.lastEdit = moment().unix()
 
   if (!promo.validity) {
     promo.validity = {}
@@ -142,17 +158,72 @@ function updatePromo(req, res) {
       })
 
       //Elimina la imagen
-      if (promo.promoImage && promo.promoImage == 'delete' && item.promoImage !== 'delete') {
-        fs.unlink(item.promoImage, (err) => {
-          if (err) res.status(500).send({
-            message: `Error al borrar la imagen de la promo, ${err}`
-          })
-          // console.log(`La imagen ${item.promoImage} fue eliminada`);
-        });
+      if (promo.promoImage &&
+          promo.promoImage == 'delete' &&
+          item.promoImage !== 'delete') {
+      
+        let fileRute = item.promoImage
+        let matchCloud = item.promoImage.substr(0,config.cloudDomain.length) 
+        let filePublicId = promoPath + item.promoImage.split('/').pop().slice(0,-4)
+  
+        if (matchCloud == config.cloudDomain) {
+          cloudinary.v2.uploader.destroy(filePublicId,
+          (error, result) => {
+            if (error) res.status(500).send({message: `Error al borrar la imagen de la promo, ${err}`})
+            console.log('la imagen de la promo fue eliminada');
+          });
+        }else{
+          fs.unlink(fileRute, (err) => {
+            if (err) res.status(500).send({message: `Error al borrar la imagen de la promo, ${err}`})
+            console.log('la imagen de la promo fue eliminada');
+          });
+        }
       }
 
       //Actualiza la imagen
-      if (promo.promoImage && promo.promoImage !== 'delete') {
+      if (promo.promoImage &&
+          promo.promoImage !== 'delete') {
+
+          if (promo.promoImage !== item.promoImage) {
+
+            let fileRute = item.promoImage
+            let matchCloud = item.promoImage.substr(0,config.cloudDomain.length) 
+            let filePublicId = promoPath + item.promoImage.split('/').pop().slice(0,-4)
+      
+            if (matchCloud == config.cloudDomain) {
+              cloudinary.v2.uploader.destroy(filePublicId,
+              (error, result) => {
+                if (error) res.status(500).send({message: `Error al borrar la imagen de la promo, ${err}`})
+                console.log('la imagen de la promo fue eliminada');
+              });
+            }else{
+              fs.unlink(fileRute, (err) => {
+                if (err) res.status(500).send({message: `Error al borrar la imagen de la promo, ${err}`})
+                console.log('la imagen de la promo fue eliminada');
+              });
+            }
+      
+          } if (promo.promoImage == item.promoImage) {
+              console.log('el archivo es el mismo');
+          }else{
+            let up =  promo.promoImage.slice(config['path'].length) 
+            cloudinary.v2.uploader.upload(
+              up,
+              {use_filename: true,
+              folder: promoPath},
+              (error, result) => {
+                Promo.findByIdAndUpdate(promo._id,
+                  { $set: { promoImage: result.secure_url }},
+                  { new: true },
+                  (err, promoStored) => {
+                    if (err) res.status(500).send({
+                      message: `Error al salvar la imagen de la promo en la nube, ${err}`
+                    })
+                });
+            });
+          }
+
+
         services.updateFile(updateId, promo.promoImage, item.promoImage, (err) => {
           if (err) res.status(500).send({
             message: `Error al actualizar la imagen de la promo, ${err}`
@@ -219,17 +290,6 @@ function deletePromo (req, res) {
     if (err) res.status(500).send({message: `Error al borrar la promo, ${err}`})
     if (!promo) return res.status(404).send({message: `La promo no existe`})
 
-    //Borrar la imagen de la promo si es que existe
-    if (promo.promoImage && promo.promoImage !== 'delete') {
-      let server = `${config.domain}${config.port}`
-      let file = promo.promoImage
-      console.log('archivo ' + file);
-      fs.unlink(file, (err) => {
-        if (err) res.status(500).send({message: `Error al borrar la imagen de la promo, ${err}`})
-        console.log('la imagen de la promo fue eliminada');
-      });
-    }
-
     if (promo.eventts !== []) {
       //Borrar la promo de los eventos en los que existe
       for (var i = 0; i < promo.eventts.length; i++) {
@@ -251,6 +311,24 @@ function deletePromo (req, res) {
       }
     }
 
+    //Borrar la imagen de la promo si es que existe
+    if (promo.promoImage && promo.promoImage !== 'delete') {
+
+      let fileRute = promo.promoImage
+      let matchCloud = promo.promoImage.substr(0,config.cloudDomain.length) 
+
+      if (matchCloud == config.cloudDomain) {
+        services.deleteFileCloud(fileRute, promoPath,  (err) => {
+          if (err) res.status(500).send({message: `Error al borrar la imagen de la promo en la nube, ${err}`})
+          // console.log('la imagen de la promo fue eliminada');
+        });
+      }else{
+        fs.unlink(fileRute, (err) => {
+          if (err) res.status(500).send({message: `Error al borrar la imagen de la promo, ${err}`})
+          // console.log('la imagen de la promo fue eliminada');
+        });
+      }
+    }
 
     //Borrar la promo en su coleccion
     promo.remove(err => {

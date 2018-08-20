@@ -4,8 +4,8 @@ const express = require('express');
 const config = require('../config');
 const promoCtrl = require('../controllers/promo');
 const auth = require('../middlewares/auth');
+const file = require('../middlewares/file');
 const multer = require('multer');
-
 const api = express.Router()
 
 //Multer Setings //Quiza es necesario recibir el id desde el front para guardar
@@ -26,7 +26,9 @@ const storage = multer.diskStorage({
 
 const fileFilter = (req, file, cb) => {
   // reject a file
-  if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'image/gif') {
+  if (file.mimetype === 'image/jpeg' 
+  || file.mimetype === 'image/png' 
+  || file.mimetype === 'image/gif') {
     cb(null, true);
   } else {
     cb(null, false);
@@ -49,8 +51,8 @@ api.get('/:promoId' , auth.isAuth, promoCtrl.getValidPromo)
 
 api.post('/', upload.single('promoImage'), promoCtrl.savePromo)
 
-api.patch('/:promoId' ,  upload.single('promoImage'), promoCtrl.updatePromo)
+api.patch('/:promoId', upload.single('promoImage'), promoCtrl.updatePromo)
 
-api.delete('/:promoId' , auth.isAuth, promoCtrl.deletePromo)
+api.delete('/:promoId', auth.isAuth, promoCtrl.deletePromo)
 
 module.exports = api
