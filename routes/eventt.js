@@ -40,7 +40,7 @@ const upload = multer({
   fileFilter: fileFilter
 });
 
-var eventtUpload = upload.fields([{ name: 'eventtImage', maxCount: 5 }, { name: 'eventtCover', maxCount: 5 }])
+var eventtUpload = upload.fields([{ name: 'eventtImage', maxCount: 1 }, { name: 'eventtCover', maxCount: 1 }])
 //EJEMPLO PARA COLECCIONES var eventtUpload = upload.fields([{ name: 'eventtImage', maxCount: 1 }, { name: 'eventtCover', maxCount: 1 }])
 
 api.get('/' , eventtCtrl.getValidEventts)
