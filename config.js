@@ -1,6 +1,6 @@
 
   const ok = {
-    domain: 'http://localhost:',
+    domain: 'https://api-demo01.herokuapp.com/',
     port: process.env.PORT || 3000,
     db: process.env.MONGODB || 'mongodb://demoUser:pasword3@ds227352.mlab.com:27352/db-demo',
     SECRET_TOKEN: 'estaEsMiClaveDeTokens',
