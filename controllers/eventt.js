@@ -107,7 +107,9 @@ function saveEventt(req, res) {
         eventt.validity.since = req.body.since
         eventt.validity.until = req.body.until
     }
-    console.log(eventt);
+ 
+    console.log(eventtPath);
+    console.log(eventt.eventtImage);
     //Sube la imagen a el cloud
     services.uploadFileCloud(eventt.eventtImage, eventtPath, wow => {
         //Espera que la imagen suba y despues...
@@ -138,9 +140,7 @@ function saveEventt(req, res) {
                 fs.unlink(fileRute, (err) => {
                     if (err) res.status(500).send({essage: `Error al borrar la imagen temporal de la promo, ${err}`})
                 });
-            }
-            console.log(eventt);
-            
+            }     
 
             //Guardar el evento en su coleccion
             eventt.save((err, eventtStored) => {
