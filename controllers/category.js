@@ -9,6 +9,7 @@ const Store = require('../models/store');
 
 const services = require('../services');
 const fs = require('fs');
+const categoryPath = 'api-demo/categorys/'
 
 function getSimpleCategorys (req, res) {
   Category.find()
@@ -61,7 +62,7 @@ function saveCategory (req, res) {
   category.state = req.body.state
   category.categoryImage = ''
   if (req.file) {
-  category.categoryImage = req.file.path
+  category.categoryImage = config.domain + config.port + '/' + req.file.path
   }
 
   category.stores = []
@@ -69,22 +70,40 @@ function saveCategory (req, res) {
   category.stores = req.body.stores
   }
 
+  //Sube la imagen a el cloud
+  services.uploadFileCloud ( category.categoryImage, categoryPath, wow => {
+    //Espera que la imagen suba y despues...
+    if (wow == 'err') res.status(500).send({message: `Error al guardar la imagen en la nube`})
 
-  //Guardar el category en su coleccion
-  category.save((err, categoryStored) => {
-    if (err) res.status(500).send({
-      message: `Error al salvar el local, ${err}`
-    })
-    res.status(200).send({
-      message: `La categoria se creo correctamente`
+    //guarda el path de la imagen ya cargada en la nube
+    if (wow) {
+      category.categoryImage = wow
+
+      //Borra el archivo de la carpeta temporal
+      let fileRute = req.file.path;
+      fs.unlink(fileRute, (err) => {
+        if (err) res.status(500).send({message: `Error al borrar la imagen temporal de la category, ${err}`})
+      });
+    }
+
+    //Guardar el category en su coleccion
+    category.save((err, categoryStored) => {
+      if (err) res.status(500).send({
+        message: `Error al salvar el local, ${err}`
+      })
+      res.status(200).send({
+        message: `La categoria se creo correctamente`
+      })
     })
   })
+
+
 
   // Guardar el id del category en los locales elegidos
   if (category.stores && category.stores !== []) {
     for (var i = 0; i < category.stores.length; i++) {
-      Categoy.findByIdAndUpdate(category.stores[i], {
-        $push: { categorys: mongoose.Types.ObjectId(categorys._id) }
+      Store.findByIdAndUpdate(category.stores[i], {
+        $push: { category: mongoose.Types.ObjectId(category._id) }
       }, (err, item) => {
         if (err)   return res.status(500).send({ message: `Error al actualizar la category con el local, ${err}` })
         if (!item) return res.status(404).send({ message: `El evento no existe` })
@@ -104,10 +123,15 @@ function updateCategory(req, res) {
   }
 
   if (req.file) {
-    category.categoryImage = req.file.path
+    category.categoryImage = config.domain + config.port + '/' + req.file.path
   }
 
-  Category.findByIdAndUpdate(updateId, category)
+  services.uploadFileCloud(category.categoryImage, categoryPath, (wow)=>{
+    if (wow) {
+      category.categoryImage = wow
+    }
+
+    Category.findByIdAndUpdate(updateId, category)
       .select(`_id name stores categoryImage`)
       .exec(function(err, item) {
           if (err) res.status(500).send({ message: `Error al buscar del local, ${err}` })
@@ -135,25 +159,15 @@ function updateCategory(req, res) {
               }
           }
 
-          //Manejo de imagenes
 
           //Actualizar las imagenes
           if (category.categoryImage && category.categoryImage !== 'delete') {
-            services.updateFile(updateId, category.categoryImage, item.categoryImage, (err) => {
-                if (err) res.status(500).send({ message: `Error al actualizar la imagen del local, ${err}` })
-            });
-          }
-
-          //Elimina las imagenes
-          if (category.categoryImage == 'delete' && item.categoryImage !== 'delete') {
-              fs.unlink(item.categoryImage, (err) => {
-                  if (err) res.status(500).send({ message: `Error al borrar la imagen del local, ${err}` })
-                      // console.log(`La imagen ${item.categoryImage} fue eliminada`);
-              });
+            services.deleteFileCloud(item.categoryImage, categoryPath, () => {})
           }
 
           res.status(200).send({ category: category })
       })
+    })
   }
 
 function deleteCategory (req, res) {
@@ -166,20 +180,30 @@ function deleteCategory (req, res) {
     if (err) res.status(500).send({message: `Error al borrar el local, ${err}`})
     if (!category) return res.status(404).send({message: `La categoria no existe`})
 
-    //Borrar la imagen del local si es que existe
+    //Borrar la imagen de la category si es que existe
     if (category.categoryImage && category.categoryImage !== 'delete') {
-      let file = category.categoryImage
-      fs.unlink(file, (err) => {
-        if (err) res.status(500).send({message: `Error al borrar el categoryImage del local, ${err}`})
-        // console.log('el categoryImage del local fue eliminado');
-      });
+
+      let fileRute = category.categoryImage
+      let matchCloud = category.categoryImage.substr(0,config.cloudDomain.length) 
+
+      if (matchCloud == config.cloudDomain) {
+        services.deleteFileCloud(fileRute, categoryPath,  (err) => {
+          if (err) res.status(500).send({message: `Error al borrar la imagen de la category en la nube, ${err}`})
+          // console.log('la imagen de la category fue eliminada');
+        });
+      }else{
+        fs.unlink(fileRute, (err) => {
+          if (err) res.status(500).send({message: `Error al borrar la imagen de la category, ${err}`})
+          // console.log('la imagen de la category fue eliminada');
+        });
+      }
     }
 
     if (category.stores && category.stores !== []) {
       //Borrar el local de las categorias en los que existe
       for (var i = 0; i < category.stores.length; i++) {
         if (category.stores[i]) {
-          Category.findByIdAndUpdate(category.stores[i], {
+          Store.findByIdAndUpdate(category.stores[i], {
             $pull: {
               stores: mongoose.Types.ObjectId(category._id)
             }

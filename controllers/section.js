@@ -9,6 +9,7 @@ const Category = require('../models/category');
 
 const services = require('../services');
 const fs = require('fs');
+const cloudPath = 'api-demo/sections/'
 
 function getSimpleSections (req, res) {
   Section.find()

@@ -12,7 +12,8 @@ function signUp (req, res) {
     password: req.body.password,
     type:req.body.type
   })
-
+  console.log(user);
+  
   user.avatar = user.gravatar();
 
   user.save(err => {

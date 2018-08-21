@@ -79,25 +79,12 @@ function checkValidity(array) {
 }
 
 
-function updateFile(updateId, fileNew, fileLast) {
-    if (fileLast && fileLast !== 'delete') {
-        if (fileNew !== fileLast) {
-            fs.unlink(fileLast, (err) => {
-                if (err) throw err;
-                console.log('el archivo fue modificada');
-            });
-        } else {
-            console.log('el archivo es el mismo');
-        }
-    }
-}
-
 cloudinary.config(config.cloudConfig);
 
 function deleteFileCloud( file, path, error ){
-
+    
+  if (!file || file == 'delete') { return }
   let filePublicId = path + file.split('/').pop().slice(0,-4)
-
   cloudinary.v2.uploader.destroy(
     filePublicId,
     (error, result) => {
@@ -109,19 +96,45 @@ function deleteFileCloud( file, path, error ){
 
 function uploadFileCloud( file, path, cb ){
 
-  let up =  file.slice(config['path'].length) 
+  if (!file || file == 'delete') { cb() }
+  else{
 
-  cloudinary.v2.uploader.upload(
-    up,
-    {use_filename: true,
-    folder: path},
-    (error, result) => {
-      cb(result)
-      if (error) {
-        cb('err')
-        console.log(error);
-      }
+    let up =  file.slice(config['path'].length) 
+    cloudinary.v2.uploader.upload(
+        up,
+        {use_filename: true,
+        folder: path},
+        (error, result) => {
+        
+        cb(result.secure_url)
+        if (error) {
+            cb('err')
+            console.log(error);
+        }
     });
+  }
+}
+
+function updateFile(fileLast, fileNew, path, cb ) {
+    if (fileLast !== 'delete' && fileNew == 'delete') {
+        deleteFileCloud(fileLast, path)
+        cb('delete')
+        return
+    }
+    if (fileLast !== 'delete' && fileNew !== 'delete') {
+        uploadFileCloud( fileNew, path, (newPath) => {
+          cb(newPath)
+          deleteFileCloud(fileLast, path)
+          return
+        })
+    }
+    if (fileLast == 'delete' && fileNew !== 'delete') {
+        uploadFileCloud( fileNew, path, (newPath) => {
+          cb(newPath)
+          return
+          })       
+    }
+    cb('delete')
 }
 
 

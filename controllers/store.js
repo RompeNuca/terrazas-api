@@ -9,6 +9,7 @@ const Category = require('../models/category');
 
 const services = require('../services');
 const fs = require('fs');
+const storePath = 'api-demo/stores/'
 
 function getSimpleStores (req, res) {
   Store.find()
@@ -64,7 +65,7 @@ function saveStore (req, res) {
   store.state = req.body.state
   store.logo = ''
   if (req.file) {
-  store.logo = req.file.path
+  store.logo = config.domain + config.port + '/' + req.file.path
   }
   store.type = 'Local'
   if (req.body.type) {
@@ -75,23 +76,39 @@ function saveStore (req, res) {
   store.category = req.body.category
   }
 
-  //Guardar el store en su coleccion
-  store.save((err, storeStored) => {
-    if (err) res.status(500).send({
-      message: `Error al salvar el local, ${err}`
+  //Sube la imagen a el cloud
+  services.uploadFileCloud ( store.logo, storePath, wow => {
+    //Espera que la imagen suba y despues...
+    if (wow == 'err') res.status(500).send({message: `Error al guardar la imagen en la nube`})
+
+    //guarda el path de la imagen ya cargada en la nube
+    if (wow) {
+      store.logo = wow
+
+      //Borra el archivo de la carpeta temporal
+      let fileRute = req.file.path;
+      fs.unlink(fileRute, (err) => {
+        if (err) res.status(500).send({message: `Error al borrar la imagen temporal de la store, ${err}`})
+      });
+    }
+    //Guardar el store en su coleccion
+    store.save((err, storeStored) => {
+      if (err) res.status(500).send({
+        message: `Error al salvar el local, ${err}`
+      })
+      res.status(200).send({
+        message: `El local se creo correctamente`
+      })
     })
-    res.status(200).send({
-      message: `El local se creo correctamente`
-    })
-  })
+})
 
   //Guardar el id del store en los eventos elegidos
-  if (store.category && store.category !== []) {
-    for (var i = 0; i < store.category.length; i++) {
-      Category.findByIdAndUpdate(store.category[i], {
+  if (store.store && store.store !== []) {
+    for (var i = 0; i < store.store.length; i++) {
+      store.findByIdAndUpdate(store.store[i], {
         $push: { stores: mongoose.Types.ObjectId(store._id) }
       }, (err, item) => {
-        if (err)   return res.status(500).send({ message: `Error al actualizar la category con el local, ${err}` })
+        if (err)   return res.status(500).send({ message: `Error al actualizar la store con el local, ${err}` })
         if (!item) return res.status(404).send({ message: `El evento no existe` })
       })
     }
@@ -109,10 +126,14 @@ function updateStore(req, res) {
   }
 
   if (req.file) {
-    store.logo = req.file.path
+    store.logo = config.domain + config.port + '/' + req.file.path
   }
 
-  Store.findByIdAndUpdate(updateId, store)
+  services.uploadFileCloud(store.logo, storePath, (wow)=>{
+    if (wow) {
+      store.logo = wow
+    }
+    Store.findByIdAndUpdate(updateId, store)
       .select(`_id name category logo`)
       .exec(function(err, item) {
           if (err) res.status(500).send({ message: `Error al buscar del local, ${err}` })
@@ -127,7 +148,7 @@ function updateStore(req, res) {
               storeNewCategory = req.body.category;
           }
 
-          //Actualiza los ids de los stores dentro de las categorys
+          //Actualiza los ids de los stores dentro de las stores
 
           if (storeLastCategory !== storeNewCategory) {
               for (var i = 0; i < storeLastCategory.length; i++) {
@@ -140,25 +161,14 @@ function updateStore(req, res) {
               }
           }
 
-          //Manejo de imagenes
-
           //Actualizar las imagenes
           if (store.logo && store.logo !== 'delete') {
-            services.updateFile(updateId, store.logo, item.logo, (err) => {
-                if (err) res.status(500).send({ message: `Error al actualizar la imagen del local, ${err}` })
-            });
-          }
-
-          //Elimina las imagenes
-          if (store.logo == 'delete' && item.logo !== 'delete') {
-              fs.unlink(item.logo, (err) => {
-                  if (err) res.status(500).send({ message: `Error al borrar la imagen del local, ${err}` })
-                      // console.log(`La imagen ${item.logo} fue eliminada`);
-              });
+            services.deleteFileCloud(item.logo, storePath, () => {})
           }
 
           res.status(200).send({ store: store })
       })
+    })
   }
 
 function deleteStore (req, res) {
@@ -171,22 +181,32 @@ function deleteStore (req, res) {
     if (err) res.status(500).send({message: `Error al borrar el local, ${err}`})
     if (!store) return res.status(404).send({message: `El local no existe`})
 
-    //Borrar la imagen del local si es que existe
+    //Borrar la imagen de la store si es que existe
     if (store.logo && store.logo !== 'delete') {
-      let file = store.logo
-      fs.unlink(file, (err) => {
-        if (err) res.status(500).send({message: `Error al borrar el logo del local, ${err}`})
-        // console.log('el logo del local fue eliminado');
-      });
+
+      let fileRute = store.logo
+      let matchCloud = store.logo.substr(0,config.cloudDomain.length) 
+
+      if (matchCloud == config.cloudDomain) {
+        services.deleteFileCloud(fileRute, storePath,  (err) => {
+          if (err) res.status(500).send({message: `Error al borrar la imagen de la store en la nube, ${err}`})
+          // console.log('la imagen de la store fue eliminada');
+        });
+      }else{
+        fs.unlink(fileRute, (err) => {
+          if (err) res.status(500).send({message: `Error al borrar la imagen de la store, ${err}`})
+          // console.log('la imagen de la store fue eliminada');
+        });
+      }
     }
 
     if (store.category && store.category !== []) {
       //Borrar el local de las categorias en los que existe
       for (var i = 0; i < store.category.length; i++) {
         if (store.category[i]) {
-          Store.findByIdAndUpdate(store.category[i], {
+          Category.findByIdAndUpdate(store.category[i], {
             $pull: {
-              category: mongoose.Types.ObjectId(stores._id)
+              store: mongoose.Types.ObjectId(stores._id)
             }
           }, function(err, store) {
             if (err) return res.status(500).send({
