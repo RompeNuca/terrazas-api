@@ -2,17 +2,20 @@
 
 const jwt = require('jwt-simple');
 const moment = require('moment');
+const nodemailer = require("nodemailer");
 const config = require('../config');
-const fs = require('fs');
-const cloudinary = require('cloudinary');
-
+const bcrypt = require('bcrypt-nodejs');
 
 function createToken(user) {
+
     const payload = {
-        sub: user.public_Id,
+        usr: user.id,
+        ema: user.email,
+        pas: user.password,
+        typ: user.type || 'guest',
         iat: moment().unix(),
         exp: moment().add(30, 'days').unix()
-    }
+    }  
 
     return jwt.encode(payload, config.SECRET_TOKEN)
 }
@@ -20,17 +23,17 @@ function createToken(user) {
 function decodeToken(token) {
     const decoded = new Promise((resolve, reject) => {
         try {
-
+  
             const payload = jwt.decode(token, config.SECRET_TOKEN)
-
+            
             if (payload.exp <= payload.iat) {
                 reject({
                     status: 401,
                     menssage: `Token expirado`
                 })
             }
-
-            resolve(payload.sub)
+            
+            resolve(payload)
 
         } catch (err) {
             reject({
@@ -43,107 +46,44 @@ function decodeToken(token) {
     return decoded
 }
 
-//VALIDACIONES DE TIEMPO
-function check(el) {
-
-    let payload = {
-        iat: moment(el.validity.since, 'YYYY-MM-DD HH:mm').unix(),
-        exp: moment(el.validity.until, 'YYYY-MM-DD HH:mm').unix()
-    }
-
-    return (moment().unix() >= payload.iat && moment().unix() <= payload.exp);
-}
-
-function filterValidity(array) {
-
-    let elValid = []
-
-    for (var i = 0; i < array.length; i++) {
-        if (check(array[i])) {
-            array[i].validity.state = true
-            elValid.push(array[i])
-        }
-    }
-    return elValid;
-
-}
-
-function checkValidity(array) {
-
-    for (var i = 0; i < array.length; i++) {
-        if (check(array[i])) {
-            array[i].validity.state = true
-        }
-    }
-    return array;
-}
-
-
-cloudinary.config(config.cloudConfig);
-
-function deleteFileCloud( file, path, error ){
-    
-  if (!file || file == 'delete') { return }
-  let filePublicId = path + file.split('/').pop().slice(0,-4)
-  cloudinary.v2.uploader.destroy(
-    filePublicId,
-    (error, result) => {
-      if (error) {
-        error(error)
-      }
-    });
-}
-
-function uploadFileCloud( file, path, cb ){
-
-  if (!file || file == 'delete') { cb() }
-  else{
-
-    let up =  file.slice(config['path'].length) 
-    cloudinary.v2.uploader.upload(
-        up,
-        {use_filename: true,
-        folder: path},
-        (error, result) => {
-        
-        cb(result.secure_url)
-        if (error) {
-            cb('err')
-            console.log(error);
-        }
-    });
-  }
-}
-
-function updateFile(fileLast, fileNew, path, cb ) {
-    if (fileLast !== 'delete' && fileNew == 'delete') {
-        deleteFileCloud(fileLast, path)
-        cb('delete')
-        return
-    }
-    if (fileLast !== 'delete' && fileNew !== 'delete') {
-        uploadFileCloud( fileNew, path, (newPath) => {
-          cb(newPath)
-          deleteFileCloud(fileLast, path)
-          return
+function sendEmail(email) {
+  // create reusable transporter object using the default SMTP transport
+  const send = new Promise((resolve, reject) => {
+    try {
+        let transporter = nodemailer.createTransport(config.email); 
+        // send mail with defined transport object
+        transporter.sendMail(email)
+        resolve({
+            status: 200,
+            menssage: `Te envamos un Email de Confirmacion`
+        })
+    } catch (err) {
+        reject({
+            status: 500,
+            menssage: `Error al enviar el mail de confirmacion`
         })
     }
-    if (fileLast == 'delete' && fileNew !== 'delete') {
-        uploadFileCloud( fileNew, path, (newPath) => {
-          cb(newPath)
-          return
-          })       
-    }
-    cb('delete')
+  })
+
+  return send
 }
 
+function createPassword(candidate) {
+    const password = new Promise((res,rej) => {
+        bcrypt.genSalt(10, (err, salt) => {
+            if (err) return rej(err)
+            bcrypt.hash(candidate, salt, null, (err, hash) => {
+                if (err) return rej(err)
+                res(hash)
+            })
+        })
+    })
+    return password
+} 
 
 module.exports = {
     createToken,
     decodeToken,
-    checkValidity,
-    filterValidity,
-    updateFile,
-    uploadFileCloud,
-    deleteFileCloud
+    sendEmail,
+    createPassword
 }

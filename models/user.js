@@ -4,33 +4,45 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema
 const bcrypt = require('bcrypt-nodejs');
 const crypto = require('crypto');
+const services = require('../services')
+const config = require('../config');
 
 const UserSchema = Schema({
-    // _id: { type: mongoose.Schema.ObjectId, select: false },
-    public_Id: String,
-    type: { type: String, enum: ['admin', 'pro', 'basic'] },
+    type: { type: String, enum: ['admin', 'confirmed', 'guest'] },
     email: { type: String, unique: true, lowercase: true },
     password: { type: String, select: false },
-    displayName: String,
+    userName: String,
     avatar: String,
     signUpDate: { type: Date, default: Date.now() },
-    lastLogin: Date,
-    __v: { type: Number, select: false },
+    lastLogIn: Date,
+    progress: Array
 })
 
-// El porque no se usa una arrow function aca: https://github.com/Automattic/mongoose/issues/4537
-UserSchema.pre('save', function(next) {
-    let user = this
-    if (!user.isModified('password')) return next()
-
+// En mongoose no usar Arrow Function.
+// Antes de guardar al usuario se hacen 3 cosas,
+// 1) se crea el token(invitado) que se le devuelve inmediatamente.
+// 2) se encripta la password.
+// 4) se envia el email de confirmacion con el token(confirmado).
+UserSchema.pre('save', function(done) {
+    let user = this;
+    if (!user.isModified('password')) return done()
+    user.type = 'confirmed'
+    let tokken = services.createToken(user)
+    let welcomeEmail = {
+        from: '"Bienvenido a Comer Despierto" <noreplay@comerdespierto.com>', // sender address
+        to: user.email, // list of receivers
+        subject: 'Bienvenido a Comer Despierto', // Subject line
+        text: '', // plain text body
+        html:`${config.domain}${config.port}/confirmed/${tokken}` // html body
+    }
     bcrypt.genSalt(10, (err, salt) => {
-        if (err) return next(err)
-
+        if (err) return done(err)
         bcrypt.hash(user.password, salt, null, (err, hash) => {
-            if (err) return next(err)
-
+            if (err) return done(err)
+            services.sendEmail(welcomeEmail)
             user.password = hash
-            next()
+            user.type = 'guest'
+            done()
         })
     })
 })
