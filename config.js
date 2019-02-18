@@ -2,7 +2,7 @@ require('dotenv').config()
 
 module.exports =  {
   url: process.env.BASE_URL || 'http://localhost:3000',
-  domain: 'http://localhost:',
+  domain: process.env.DOMAIN || 'http://localhost:',
   port: process.env.PORT || 3000,
   db: process.env.MONGODB_URI,
   email: {
