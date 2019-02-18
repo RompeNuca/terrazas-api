@@ -1,0 +1,32 @@
+{
+ "modules": [
+   {
+    "_id": "Id",
+    "name": "Nombre del modulo",
+    "info": "Descripcion",
+    "videos": [
+     {
+      "url":"url del video", 
+      "title": "titulo del video"
+     }
+    ],
+    "materials": [
+     {
+      "name": "Nombre del grupo de descargable",
+      "info": "info del grupo",
+      "group": [
+       {
+        "url":"url del material",
+        "title": "titulo del documento"
+       }
+      ]
+     }
+    ]
+   }
+ ],
+ "users": [
+  {
+   "progress": [["module Id", true]]
+  }
+ ]
+}

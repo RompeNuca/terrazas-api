@@ -2,16 +2,20 @@
 
 const jwt = require('jwt-simple');
 const moment = require('moment');
+const nodemailer = require("nodemailer");
 const config = require('../config');
-const fs = require('fs');
-
+const bcrypt = require('bcrypt-nodejs');
 
 function createToken(user) {
+
     const payload = {
-        sub: user.public_Id,
+        usr: user.id,
+        ema: user.email,
+        pas: user.password,
+        typ: user.type || 'guest',
         iat: moment().unix(),
         exp: moment().add(30, 'days').unix()
-    }
+    }  
 
     return jwt.encode(payload, config.SECRET_TOKEN)
 }
@@ -19,17 +23,17 @@ function createToken(user) {
 function decodeToken(token) {
     const decoded = new Promise((resolve, reject) => {
         try {
-
+  
             const payload = jwt.decode(token, config.SECRET_TOKEN)
-
+            
             if (payload.exp <= payload.iat) {
                 reject({
                     status: 401,
                     menssage: `Token expirado`
                 })
             }
-
-            resolve(payload.sub)
+            
+            resolve(payload)
 
         } catch (err) {
             reject({
@@ -42,60 +46,44 @@ function decodeToken(token) {
     return decoded
 }
 
-//VALIDACIONES DE TIEMPO
-function check(el) {
-
-    let payload = {
-        iat: moment(el.validity.since, 'YYYY-MM-DD HH:mm').unix(),
-        exp: moment(el.validity.until, 'YYYY-MM-DD HH:mm').unix()
+function sendEmail(email) {
+  // create reusable transporter object using the default SMTP transport
+  const send = new Promise((resolve, reject) => {
+    try {
+        let transporter = nodemailer.createTransport(config.email); 
+        // send mail with defined transport object
+        transporter.sendMail(email)
+        resolve({
+            status: 200,
+            menssage: `Te envamos un Email de Confirmacion`
+        })
+    } catch (err) {
+        reject({
+            status: 500,
+            menssage: `Error al enviar el mail de confirmacion`
+        })
     }
+  })
 
-    return (moment().unix() >= payload.iat && moment().unix() <= payload.exp);
+  return send
 }
 
-function filterValidity(array) {
-
-    let elValid = []
-
-    for (var i = 0; i < array.length; i++) {
-        if (check(array[i])) {
-            array[i].validity.state = true
-            elValid.push(array[i])
-        }
-    }
-    return elValid;
-
-}
-
-function checkValidity(array) {
-
-    for (var i = 0; i < array.length; i++) {
-        if (check(array[i])) {
-            array[i].validity.state = true
-        }
-    }
-    return array;
-}
-
-
-function updateFile(updateId, fileNew, fileLast) {
-    if (fileLast && fileLast !== 'delete') {
-        if (fileNew !== fileLast) {
-            fs.unlink(fileLast, (err) => {
-                if (err) throw err;
-                console.log('el archivo fue modificada');
-            });
-        } else {
-            console.log('el archivo es el mismo');
-        }
-    }
-}
-
+function createPassword(candidate) {
+    const password = new Promise((res,rej) => {
+        bcrypt.genSalt(10, (err, salt) => {
+            if (err) return rej(err)
+            bcrypt.hash(candidate, salt, null, (err, hash) => {
+                if (err) return rej(err)
+                res(hash)
+            })
+        })
+    })
+    return password
+} 
 
 module.exports = {
     createToken,
     decodeToken,
-    checkValidity,
-    filterValidity,
-    updateFile
+    sendEmail,
+    createPassword
 }
