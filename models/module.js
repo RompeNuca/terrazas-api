@@ -5,7 +5,7 @@ const Schema = mongoose.Schema;
 
 // const bcrypt = require('bcrypt-nodejs');
 // const crypto = require('crypto');
-// const services = require('../services')
+// const services = require('../services')//
 
 const ModuleSchema = Schema({
     name: String,
