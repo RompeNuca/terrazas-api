@@ -10,13 +10,13 @@ const api = express.Router()
 const allUsers = ['confirmed', 'guest', 'pro']
 
 // Peticiones al servidor de modulos
-api.get('https://comer-despierto.herokuapp.com/api/modules/:userId', auth.isAuth(allUsers), moduleCtrl.getModules)
+api.get('/modules/:userId', auth.isAuth(allUsers), moduleCtrl.getModules)
 
 // // Peticiones al servidor de modulo 
-api.get('https://comer-despierto.herokuapp.com/api/module/:moduleId', moduleCtrl.getModule) // Auth compleja armada directamente en el controlador
+api.get('/module/:moduleId', moduleCtrl.getModule) // Auth compleja armada directamente en el controlador
 
 // // Peticiones al servidor de usuario
-// api.get('https://comer-despierto.herokuapp.com/api/token/:token', auth.isAuth(['confirmed', 'guest']), moduleCtrl.getUserByToken)
+// api.get('/token/:token', auth.isAuth(['confirmed', 'guest']), moduleCtrl.getUserByToken)
 
 
 module.exports = api
