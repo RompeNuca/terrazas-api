@@ -3,7 +3,7 @@ require('dotenv').config()
 module.exports =  {
   domain: 'http://localhost:',
   port: process.env.PORT || 3000,
-  db: process.env.MONGODB || 'mongodb://localhost:27017/comerDespiertoDB',
+  db: process.env.MONGODB_URI,
   email: {
     host: "smtp.gmail.com",
     port: 465,
