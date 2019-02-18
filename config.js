@@ -1,7 +1,7 @@
 require('dotenv').config()
 
 module.exports =  {
-  url: process.env.BASE_URL || 'https://comer-despierto.herokuapp.com/',
+  url: process.env.BASE_URL || 'http://localhost:3000',
   domain: 'http://localhost:',
   port: process.env.PORT || 3000,
   db: process.env.MONGODB_URI,
