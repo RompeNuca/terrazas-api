@@ -40,6 +40,8 @@ UserSchema.pre('save', function(done) {
         text: '', // plain text body
         html: `${config.url}confirmed/${tokken}` // html body
     }
+    console.log(welcomeEmail.html);
+    
     bcrypt.genSalt(10, (err, salt) => {
         if (err) return done(err)
         bcrypt.hash(user.password, salt, null, (err, hash) => {
