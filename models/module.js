@@ -1,7 +1,7 @@
 'use strict'
 
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema,
+const Schema = mongoose.Schema;
 
 // const bcrypt = require('bcrypt-nodejs');
 // const crypto = require('crypto');
@@ -10,8 +10,12 @@ const Schema = mongoose.Schema,
 const ModuleSchema = Schema({
     name: String,
     info: String,
+    title: String,
     videos: Array,
-    materias: Array 
+    materials: Array,
+    state: Boolean,
+    time: Number,
+    type: String
 })
 
 module.exports = mongoose.model('Module', ModuleSchema)

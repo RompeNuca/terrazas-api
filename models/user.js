@@ -12,11 +12,16 @@ const UserSchema = Schema({
     email: { type: String, unique: true, lowercase: true },
     password: { type: String, select: false },
     userName: String,
+    userLastName: String,
     avatar: String,
     signUpDate: { type: Date, default: Date.now() },
     lastLogIn: Date,
-    progress: Array
+    progress: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Module'}],
+    wait: Date,
+    progressUnity: Number,
+    available: Array
 })
+
 
 // En mongoose no usar Arrow Function.
 // Antes de guardar al usuario se hacen 3 cosas,

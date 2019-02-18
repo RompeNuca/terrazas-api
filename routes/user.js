@@ -23,6 +23,7 @@ api.post('/signin', userCtrl.signIn)
 
 // Edit
 api.post('/user/edit/:userId', auth.isAuth(['confirmed', 'guest', 'pro']), userCtrl.editUser)
+api.post('/user/finished/:userId', auth.isAuth(['confirmed', 'guest', 'pro']), userCtrl.finishedModule)
 
 // Peticiones al servidor de usuarios
 api.get('/users', auth.isAuth(['admin']), userCtrl.getUsers)

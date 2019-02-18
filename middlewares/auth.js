@@ -1,5 +1,4 @@
 'use strict'
-const User = require('../models/user');
 const services = require('../services');
 
 function isAuth (role) {

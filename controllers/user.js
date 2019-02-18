@@ -2,18 +2,19 @@
 
 const mongoose = require('mongoose');
 const User = require('../models/user');
+const Module = require('../models/module');
 const services = require('../services');
 const config = require('../config');
 
 function signUp (req, res) {
   const user = new User({
     email: req.body.email,
-    userName: req.body.displayName,
+    userName: req.body.userName,
+    userLastName: req.body.userLastName,
     password: req.body.password
   })
-  
-  user.avatar = user.gravatar();
 
+  user.avatar = user.gravatar();
   user.save(err => {
     if (err) return res.status(500).send({ msg: `Error al crear usuario: ${err}` })
     return res.status(200).send({ token: services.createToken(user) })
@@ -129,11 +130,24 @@ function getUserByToken (req, res) {
   let token = req.params.token
   services.decodeToken(token)
   .then(decode => {
-    User.findOne({email: decode.ema }, (err, user) => {
+    return User.findOne({email: decode.ema }, (err, user) => {
       if (err) return res.status(500).send({message: `Error al relaizar la peticion, ${err}`})
       if (!user) return res.status(404).send({message: `El user no existe`})
-      res.status(200).send(user)
+      return user
     })
+  })
+  .then( user =>{
+    return Module.find({})
+    .select('_id')
+    .then(modules => {
+      return [user, modules]
+    })
+  })
+  .then( data => {
+    let [user, modules] = data
+    let progress = (user.progress.length >= 1) ? user.progress.length : 1;
+    user.progressUnity = (progress / modules.length)*100;
+    res.status(200).send(user)
   })
   .catch(err => res.status(500).send({ msg: `El token no es valido: ${err}` }))
 }
@@ -146,6 +160,28 @@ function editUser (req, res) {
   .then(user => {
     if (!user) return res.status(404).send({message: `El user no existe`})
     res.status(200).send(user) 
+  })
+  .catch(err => res.status(500).send({message: `Error al relaizar la peticion, ${err}`}))
+}
+
+function finishedModule (req, res) {
+  let userId = req.params.userId
+  let module = mongoose.Types.ObjectId(req.body.module)
+  let days = 1
+  let time = new Date(Date.now() + days*1*1*20*1000)
+  User.findOne({ _id: userId })
+  .then(user => {
+    let search = user.progress.filter( x => x.toString() === module.toString() )[0]
+    if (!search) {
+      user.update({wait: time, $push: { progress: module}}, { new: true, upsert: true })
+      .then(user => {
+        console.log(user);
+        if (!user) return res.status(404).send({message: `El user no existe`})
+        res.status(200).send(user) 
+      })
+    } else {
+      res.status(200).send({message: `Este modulo ya fue terminado anteriormente`}) 
+    }
   })
   .catch(err => res.status(500).send({message: `Error al relaizar la peticion, ${err}`}))
 }
@@ -167,5 +203,6 @@ module.exports = {
   editUser,
   confirmed,
   recover,
-  requestRecoverPassword
+  requestRecoverPassword,
+  finishedModule
 }
