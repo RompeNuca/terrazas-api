@@ -26,7 +26,7 @@ app.use('/api', moduleRoutes);
 
 app.use('/', express.static('public'))
 
-app.get('https://comer-despierto.herokuapp.com/api/*', (req, res) => {
+app.get('/*', (req, res) => {
  res.sendFile(__dirname + '/public/index.html');
 })
 
