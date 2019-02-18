@@ -54,7 +54,7 @@ function requestRecoverPassword (req, res) {
         to: req.body.email, // list of receivers
         subject: 'Reset Password', // Subject line
         text: '', // plain text body
-        html:`${config.domain}${config.port}/recover/${token}` // html body
+        html:`${config.url}recover/${token}` // html body
       }
       services.sendEmail(recoverEmail)      
       .then( res.status(200).send({ message: 'Se envio un email para el cambio de contraseña' }))
