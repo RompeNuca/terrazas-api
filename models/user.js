@@ -38,9 +38,8 @@ UserSchema.pre('save', function(done) {
         to: user.email, // list of receivers
         subject: 'Bienvenido a Comer Despierto', // Subject line
         text: '', // plain text body
-        html: `${config.url}/api/confirmed/${tokken}` // html body
+        html: `${config.url}/confirmed/${tokken}` // html body
     }
-    console.log(welcomeEmail.html);
     
     bcrypt.genSalt(10, (err, salt) => {
         if (err) return done(err)
