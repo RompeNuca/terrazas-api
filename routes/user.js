@@ -8,6 +8,8 @@ const auth = require('../middlewares/auth');
 
 const api = express.Router()
 
+const allUsers = ['admin', 'confirmed', 'confirmedPlus', 'guest', 'pro']
+
 // Envios al servidor de Nuevo usuario
 api.post('/signup', userCtrl.signUp)
 
@@ -22,17 +24,21 @@ api.post('/recover', userCtrl.recover) // autoriza
 api.post('/signin', userCtrl.signIn)
 
 // Edit
-api.post('/user/edit/:userId', auth.isAuth(['confirmed', 'guest', 'pro']), userCtrl.editUser)
-api.post('/user/finished/:userId', auth.isAuth(['confirmed', 'guest', 'pro']), userCtrl.finishedModule)
+api.patch('/user/edit/:userId', auth.isAuth(['admin', 'guest']), userCtrl.editUser)
+api.post('/user/finished/:userId', auth.isAuth(allUsers), userCtrl.finishedModule)
+api.post('/user/payMessage/:userId', auth.isAuth(allUsers), userCtrl.payMessage)
+
+// Delete User
+api.delete('/user/delete/:userId', userCtrl.deleteUser)
 
 // Peticiones al servidor de usuarios
 api.get('/users', auth.isAuth(['admin']), userCtrl.getUsers)
 
 // Peticiones al servidor de usuario
-api.get('/user/:userId', auth.isAuth(['confirmed', 'guest', 'pro']), userCtrl.getUser)
+api.get('/user/:userId', auth.isAuth(allUsers), userCtrl.getUser)
 
 // Peticiones al servidor de usuario
-api.get('/token/:token', auth.isAuth(['confirmed', 'guest', 'pro']), userCtrl.getUserByToken)
+api.get('/token/:token', auth.isAuth(allUsers), userCtrl.getUserByToken)
 
 
 module.exports = api

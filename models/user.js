@@ -8,7 +8,7 @@ const services = require('../services')
 const config = require('../config');
 
 const UserSchema = Schema({
-    type: { type: String, enum: ['admin', 'confirmed', 'guest'] },
+    type: { type: String, enum: ['admin', 'confirmed','confirmedPlus', 'guest'] },
     email: { type: String, unique: true, lowercase: true },
     password: { type: String, select: false },
     userName: String,
@@ -38,7 +38,7 @@ UserSchema.pre('save', function(done) {
         to: user.email, // list of receivers
         subject: 'Bienvenido a Comer Despierto', // Subject line
         text: '', // plain text body
-        html: `${config.url}confirmed/${tokken}` // html body
+        html: `${config.url}/api/confirmed/${tokken}` // html body
     }
     console.log(welcomeEmail.html);
     

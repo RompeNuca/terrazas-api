@@ -54,7 +54,7 @@ function requestRecoverPassword (req, res) {
         to: req.body.email, // list of receivers
         subject: 'Reset Password', // Subject line
         text: '', // plain text body
-        html:`${config.url}recover/${token}` // html body
+        html:`${config.url}/api/recover/${token}` // html body
       }
       services.sendEmail(recoverEmail)      
       .then( res.status(200).send({ message: 'Se envio un email para el cambio de contraseña' }))
@@ -107,14 +107,12 @@ function signIn (req, res) {
  }
 
 function getUsers (req, res) {
+  User.find({}, null, {where: {type: ['guest', 'confirmed', 'pro', 'confirmedPlus']}, sort: {_id: 'desc'}}, (err, users) => {
+    if (err) return res.status(500).send({message: `Error al relaizar la peticion, ${err}`})
+    if (!users) return res.status(404).send({message: `No hay Usuarios`})
 
- User.find({}, (err, users) => {
-   if (err) return res.status(500).send({message: `Error al relaizar la peticion, ${err}`})
-   if (!users) return res.status(404).send({message: `No hay Usuarios`})
-
-   res.status(200).send({ users })
- })
-
+    res.status(200).send({ users })
+  })
 }
 
 function getUser (req, res) {
@@ -146,7 +144,7 @@ function getUserByToken (req, res) {
   .then( data => {
     let [user, modules] = data
     let progress = (user.progress.length >= 1) ? user.progress.length : 1;
-    user.progressUnity = (progress / modules.length)*100;
+    user.progressUnity = parseInt((progress / modules.length)*100)
     res.status(200).send(user)
   })
   .catch(err => res.status(500).send({ msg: `El token no es valido: ${err}` }))
@@ -155,7 +153,6 @@ function getUserByToken (req, res) {
 function editUser (req, res) {
   let userId = req.params.userId;
   let user = req.body;
-
   User.findOneAndUpdate({ _id: userId }, user, { new: true })
   .then(user => {
     if (!user) return res.status(404).send({message: `El user no existe`})
@@ -175,13 +172,52 @@ function finishedModule (req, res) {
     if (!search) {
       user.update({wait: time, $push: { progress: module}}, { new: true, upsert: true })
       .then(user => {
-        console.log(user);
         if (!user) return res.status(404).send({message: `El user no existe`})
         res.status(200).send(user) 
       })
     } else {
       res.status(200).send({message: `Este modulo ya fue terminado anteriormente`}) 
     }
+  })
+  .catch(err => res.status(500).send({message: `Error al relaizar la peticion, ${err}`}))
+}
+
+function deleteUser (req, res) {
+  let userId = req.params.userId;
+
+  User.findOneAndRemove(userId)
+  .then(user => {
+    if (!user) return res.status(404).send({message: `El user no existe`})
+    res.status(200).send(user) 
+  })
+  .catch(err => res.status(500).send({message: `Error al relaizar la peticion, ${err}`}))
+}
+
+function payMessage (req, res) {
+  let userId = req.params.userId;
+  console.log(userId);
+  
+  User.findOne({_id: userId})
+  .then(user => {
+    
+    if (!user) return res.status(404).send({message: `El user no existe`})
+    let payEmail = {
+      from: `"Cliente: ${user.userName}" <noreplay@comerdespierto.com>`, // sender address
+      to: config.email.auth.user, // list of receivers
+      subject: 'Asegura haber realizado el pago', // Subject line
+      text: '', // plain text body
+      html:`El usuario: ${user.userName} | ${user.email} <br /> <h3> Asegura el pago del curso. <br /> Revisar. <h3> ` // html body
+    }
+    
+    services.sendEmail(payEmail)
+    .then(okEmail => {
+      return user.update({type: 'confirmedPlus'})
+      .then(user => {
+        return user
+      })
+    }).then(status => {
+      return res.status(200).send(status)
+    })
   })
   .catch(err => res.status(500).send({message: `Error al relaizar la peticion, ${err}`}))
 }
@@ -201,8 +237,10 @@ module.exports = {
   getUser,
   getUserByToken,
   editUser,
+  deleteUser,
   confirmed,
   recover,
   requestRecoverPassword,
-  finishedModule
+  finishedModule,
+  payMessage
 }

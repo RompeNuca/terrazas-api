@@ -7,7 +7,8 @@ const auth = require('../middlewares/auth');
 // const multer = require('multer');
 
 const api = express.Router()
-const allUsers = ['confirmed', 'guest', 'pro']
+
+const allUsers = ['admin', 'confirmed', 'confirmedPlus', 'guest', 'pro']
 
 // Peticiones al servidor de modulos
 api.get('/modules/:userId', auth.isAuth(allUsers), moduleCtrl.getModules)
