@@ -195,7 +195,6 @@ function deleteUser (req, res) {
 
 function payMessage (req, res) {
   let userId = req.params.userId;
-  console.log(userId);
   
   User.findOne({_id: userId})
   .then(user => {

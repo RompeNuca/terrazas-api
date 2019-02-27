@@ -13,13 +13,13 @@ function isAuth (role) {
     services.decodeToken(token)
     .then(decoToken => {
       const acces = role.find(x => x == decoToken.typ)
-      if (!acces) res.status(403).send({ message: `no tienes autorizacion` })
+      if (!acces) return res.status(403).send({ message: `no tienes autorizacion` })
       req.user = decoToken
       next()
     })
     .catch(response => {
-      console.log(response);
-      res.status = (response.status)
+      // console.log(response);
+      res.status(403).send({ message: `no tienes autorizacion` })
     })
   }
 }
