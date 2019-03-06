@@ -11,6 +11,9 @@ const api = express.Router()
 const allUsers = ['admin', 'confirmed', 'confirmedPlus', 'guest', 'pro']
 
 // Peticiones al servidor de modulos
+api.get('/modules', moduleCtrl.getModulesSimple)
+
+// Peticiones al servidor de modulos
 api.get('/modules/:userId', auth.isAuth(allUsers), moduleCtrl.getModules)
 
 // // Peticiones al servidor de modulo 

@@ -6,6 +6,19 @@ const User = require('../models/user');
 const services = require('../services');
 const config = require('../config');
 
+function getModulesSimple (req, res) {
+
+  Module.find({})
+  .select('info name')
+  .then(modules => {
+    return res.status(200).send( {modules} )
+  })
+  .catch(err => {
+    console.log(err);
+    return res.status(404).send( err )
+  })
+}
+
 function getModules (req, res) {
   let userId = req.params.userId
 
@@ -112,5 +125,6 @@ function getModule (req, res) {
 
 module.exports = {
   getModules,
-  getModule
+  getModule,
+  getModulesSimple
 }
