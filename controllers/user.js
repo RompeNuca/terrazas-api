@@ -164,8 +164,8 @@ function editUser (req, res) {
 function finishedModule (req, res) {
   let userId = req.params.userId
   let module = mongoose.Types.ObjectId(req.body.module)
-  let days = 1
-  let time = new Date(Date.now() + days*1*1*20*1000)
+  let days = 7
+  let time = new Date(Date.now() + days*24*60*60*1000)
   User.findOne({ _id: userId })
   .then(user => {
     let search = user.progress.filter( x => x.toString() === module.toString() )[0]
