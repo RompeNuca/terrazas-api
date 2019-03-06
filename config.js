@@ -6,7 +6,7 @@ module.exports =  {
   port: process.env.PORT || 3000,
   db: process.env.MONGODB_URI,
   email: {
-    host: "smtp.comerdespierto.com",
+    host: "smtp.gmail.com",
     port: 465,
     secure: true, // true for 465, false for other ports
     auth: {
