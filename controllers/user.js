@@ -26,8 +26,8 @@ function confirmed (req, res) {
 
   services.decodeToken(token)
   .then(decode => {
-    
-    if (decode.typ !== 'guest') return res.status(404).send({ msg: `El usuario, ya fue confirmado previamente` })
+    // este token no es de usuario por eso da error
+    // if (decode.typ !== 'guest') return res.status(404).send({ msg: `El usuario, ya fue confirmado previamente` })
     User.findOneAndUpdate({ email: decode.ema }, {type: decode.typ},  { new: true })
       .exec(function (err, user) {
         if (err) return res.status(500).send({ msg: `Error al intentar confirmar al usuario: ${err}` })
