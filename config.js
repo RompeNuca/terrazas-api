@@ -11,6 +11,7 @@ module.exports =  {
     secure: true, // true for 465, false for other ports
     auth: {
       user: process.env.EMAIL,
+      admin: process.env.EMAIL_ADMIN,
       pass: process.env.EMAILPASSWORD
     }
   },
