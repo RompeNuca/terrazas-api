@@ -26,13 +26,13 @@ function confirmed (req, res) {
 
   services.decodeToken(token)
   .then(decode => {
-    
-  User.findOneAndUpdate({ email: decode.ema }, {type: decode.typ},  { new: true })
-    .exec(function (err, user) {
-      if (err) return res.status(500).send({ msg: `Error al intentar confirmar al usuario: ${err}` })
-      if (!user) return res.status(404).send({ msg: `no existe el usuario: ${user.email}` })
-      return res.status(200).send({ user, token: services.createToken(user) })
-    });
+    if (decode.typ !== 'guest') return res.status(404).send({ msg: `El usuario: ${user.email}, ya fue confirmado previamente` })
+    User.findOneAndUpdate({ email: decode.ema }, {type: decode.typ},  { new: true })
+      .exec(function (err, user) {
+        if (err) return res.status(500).send({ msg: `Error al intentar confirmar al usuario: ${err}` })
+        if (!user) return res.status(404).send({ msg: `no existe el usuario: ${user.email}` })
+        return res.status(200).send({ user, token: services.createToken(user) })
+      });
   })
  }
 
@@ -202,7 +202,7 @@ function payMessage (req, res) {
     if (!user) return res.status(404).send({message: `El user no existe`})
     let payEmail = {
       from: `"Cliente: ${user.userName}" <noreplay@comerdespierto.com>`, // sender address
-      to: config.email.auth.user, // list of receivers
+      to: config.email.auth.admin, // list of receivers
       subject: 'Asegura haber realizado el pago', // Subject line
       text: '', // plain text body
       html:`El usuario: ${user.userName} | ${user.email} <br /> <h3> Asegura el pago del curso. <br /> Revisar. <h3> ` // html body
