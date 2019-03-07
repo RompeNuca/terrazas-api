@@ -24,7 +24,7 @@ api.post('/recover', userCtrl.recover) // autoriza
 api.post('/signin', userCtrl.signIn)
 
 // Edit
-api.patch('/user/edit/:userId', auth.isAuth(['admin', 'guest']), userCtrl.editUser)
+api.patch('/user/edit/:userId', auth.isAuth(allUsers), userCtrl.editUser)
 api.post('/user/finished/:userId', auth.isAuth(allUsers), userCtrl.finishedModule)
 api.post('/user/payMessage/:userId', auth.isAuth(allUsers), userCtrl.payMessage)
 
